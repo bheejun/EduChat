@@ -9,17 +9,14 @@ import java.util.*
 @Table(name = "discussion_chat_history")
 class DiscussionChatHistory(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @ColumnDefault("gen_random_uuid()")
     @Column(name = "message_id", nullable = false)
-    var id: UUID? = null,
+    var id: UUID,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "session_id", nullable = false)
-    var session: DiscussionChatSession? = null,
+    @Column(name = "session_id", nullable = false)
+    var sessionId: UUID,
 
     @Column(name = "message", nullable = false, length = Integer.MAX_VALUE)
-    var message: String? = null,
+    var message: String,
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "sent_at")
@@ -29,6 +26,4 @@ class DiscussionChatHistory(
     fun insertDefaults() {
         sentAt = Instant.now()
     }
-
-        constructor() : this(null, null, null, null)
 }

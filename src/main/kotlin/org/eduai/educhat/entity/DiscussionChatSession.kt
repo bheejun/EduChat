@@ -9,17 +9,14 @@ import java.util.*
 @Table(name = "discussion_chat_session")
 class DiscussionChatSession(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @ColumnDefault("gen_random_uuid()")
     @Column(name = "discussion_session_id", nullable = false)
-    var id: UUID? = null,
+    var discussionSessionId: UUID,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "grp_id", nullable = false)
-    var grp: DiscussionGrp? = null,
+    @Column(name = "grp_id", nullable = false)
+    var grpId: UUID,
 
     @Column(name = "is_active", length = 10)
-    var isActive: String? = null,
+    var isActive: String,
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "ins_dt")
@@ -39,5 +36,4 @@ class DiscussionChatSession(
         updDt = Instant.now()
     }
 
-    constructor() : this(null, null, null, null, null)
 }

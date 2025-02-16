@@ -10,14 +10,14 @@ import java.util.*
 @Table(name = "discussion_grp_member")
 class DiscussionGrpMember(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @ColumnDefault("gen_random_uuid()")
     @Column(name = "id", nullable = false)
-    var id: UUID? = null,
+    var id: UUID,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "grp_id", nullable = false)
-    var grp: DiscussionGrp? = null,
+    @Column(name = "grp_id", nullable = false)
+    var grpId: UUID,
+
+    @Column(name = "user_id", nullable = false)
+    var userId: String,
 
     @Column(name = "role", length = 50)
     var role: String? = null,
@@ -28,11 +28,7 @@ class DiscussionGrpMember(
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "upd_dt")
-    var updDt: Instant? = null,
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    var user: UserMst? = null
+    var updDt: Instant? = null
 ) {
     @PrePersist
     fun insertDefaults() {
@@ -43,6 +39,4 @@ class DiscussionGrpMember(
     fun updateDefaults() {
         updDt = Instant.now()
     }
-
-    constructor() : this(null, null, null, null, null, null)
 }

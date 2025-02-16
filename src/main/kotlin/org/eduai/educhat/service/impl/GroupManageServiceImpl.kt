@@ -4,18 +4,20 @@ import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.entity.DiscussionGrp
 import org.eduai.educhat.entity.DiscussionGrpMember
-import org.eduai.educhat.entity.UserMst
 import org.eduai.educhat.repository.DiscussionGrpMemberRepository
 import org.eduai.educhat.repository.DiscussionGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
+import org.eduai.educhat.service.ThreadManageService
 import org.springframework.stereotype.Service
+import java.util.*
 
 @Service
 class GroupManageServiceImpl(
+    private val threadManageService: ThreadManageService,
     private val userMstRepository: UserMstRepository,
-    private val discussionGrpRepository: DiscussionGrpRepository,
-    private val discussionGrpMemberRepository: DiscussionGrpMemberRepository
+    private val grpRepo: DiscussionGrpRepository,
+    private val grpMemRepo: DiscussionGrpMemberRepository
 ) : GroupManageService {
 
     override fun getStudentList(): List<List<String>> {
@@ -25,33 +27,31 @@ class GroupManageServiceImpl(
     }
 
     override fun createGroup(createGroupRequestDto: CreateGroupRequestDto) {
-        var discussionGrp: DiscussionGrp
-        var discussionGrpMember: DiscussionGrpMember
         val clsId = createGroupRequestDto.clsId
+        val grpId = UUID.randomUUID()
 
         createGroupRequestDto.groups.forEach { group ->
-            discussionGrp = DiscussionGrp(
-                grpNm = group.groupNm,
-                grpTopic = group.topic,
+            grpRepo.saveAndFlush(DiscussionGrp(
+                grpId = grpId,
                 grpNo = group.groupNo,
-                clsId = clsId
-            )
+                clsId = clsId,
+                grpNm = group.groupNm,
+                grpTopic = group.topic
+            ))
 
-            //그룹 저장
-            discussionGrpRepository.saveAndFlush(discussionGrp)
+            threadManageService.createGroupChannel(clsId, grpId)
 
             val memberIdList = group.memberIdList
 
-            println(memberIdList)
             memberIdList.forEach { memberId ->
-                val user : UserMst = userMstRepository.findById(memberId).orElseThrow { throw Exception("User not found") }
-                discussionGrpMember = DiscussionGrpMember(
-                    grp = discussionGrp,
-                    role = "STUDENT",
-                    user = user
-                )
                 //그룹 멤버 저장
-                discussionGrpMemberRepository.saveAndFlush(discussionGrpMember)
+                val memRepoId = UUID.randomUUID()
+                grpMemRepo.saveAndFlush(DiscussionGrpMember(
+                    id = memRepoId,
+                    grpId = grpId,
+                    userId = memberId,
+                    role = "STUD"
+                ))
             }
 
         }
@@ -60,6 +60,6 @@ class GroupManageServiceImpl(
 
     override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscussionGrp> {
 
-        return discussionGrpRepository.findAllByClsId(getDiscussionListRequestDto.clsId)
+        return grpRepo.findAllByClsId(getDiscussionListRequestDto.clsId)
     }
 }

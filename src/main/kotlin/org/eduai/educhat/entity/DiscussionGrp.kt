@@ -9,22 +9,20 @@ import java.util.*
 @Table(name = "discussion_grp")
 class DiscussionGrp(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @ColumnDefault("gen_random_uuid()")
     @Column(name = "grp_id", nullable = false)
-    var id: UUID? = null,
+    var grpId: UUID,
 
     @Column(name = "grp_no", nullable = false)
-    var grpNo: Int? = null,
+    var grpNo: Int,
 
     @Column(name = "cls_id", nullable = false, length = 20)
-    var clsId: String? = null,
+    var clsId: String,
 
     @Column(name = "grp_topic")
-    var grpTopic: String? = null,
+    var grpTopic: String,
 
     @Column(name = "grp_nm")
-    var grpNm: String? = null,
+    var grpNm: String,
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "ins_dt", nullable = false)
@@ -43,6 +41,4 @@ class DiscussionGrp(
     fun updateDefaults() {
         updDt = Instant.now()
     }
-
-        constructor() : this(null, null, null, null, null, null, null)
 }
