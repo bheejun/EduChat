@@ -1,8 +1,8 @@
 package org.eduai.educhat.entity
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.*
-import org.hibernate.annotations.ColumnDefault
-import java.time.Instant
+import java.time.LocalDateTime
 import java.util.*
 
 @Entity
@@ -24,21 +24,17 @@ class DiscussionGrp(
     @Column(name = "grp_nm")
     var grpNm: String,
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "is_active")
+    var isActive: String,
+
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     @Column(name = "ins_dt", nullable = false)
-    var insDt: Instant? = null,
+    var insDt: LocalDateTime,
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "upd_dt")
-    var updDt: Instant? = null
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @Column(name = "upd_dt", nullable = false)
+    var updDt: LocalDateTime
 ) {
-    @PrePersist
-    fun insertDefaults() {
-        insDt = Instant.now()
-    }
-
-    @PreUpdate()
-    fun updateDefaults() {
-        updDt = Instant.now()
-    }
 }

@@ -32,7 +32,6 @@ class GroupController(
 
     @PostMapping("/create")
     fun createGroup(@RequestBody createGroupRequestDto: CreateGroupRequestDto) : ResponseEntity<String>{
-
         groupManageService.createGroup(createGroupRequestDto)
         return ResponseEntity("Success", HttpStatus.OK)
     }

@@ -1,8 +1,8 @@
 package org.eduai.educhat.entity
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.*
-import org.hibernate.annotations.ColumnDefault
-import java.time.Instant
+import java.time.LocalDateTime
 import java.util.*
 
 @Entity
@@ -18,12 +18,8 @@ class DiscussionChatHistory(
     @Column(name = "message", nullable = false, length = Integer.MAX_VALUE)
     var message: String,
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     @Column(name = "sent_at")
-    var sentAt: Instant? = null
+    var sentAt: LocalDateTime
 ) {
-    @PrePersist
-    fun insertDefaults() {
-        sentAt = Instant.now()
-    }
 }

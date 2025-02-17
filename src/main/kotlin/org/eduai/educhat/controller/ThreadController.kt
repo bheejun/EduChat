@@ -1,7 +1,8 @@
 package org.eduai.educhat.controller
 
+import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
+import org.eduai.educhat.dto.request.EnterRequestDto
 import org.eduai.educhat.dto.request.RedisMessageRequestDto
-import org.eduai.educhat.dto.request.enterDiscussionRequestDto
 import org.eduai.educhat.dto.response.RedisMessageResponseDto
 import org.eduai.educhat.service.ThreadManageService
 import org.springframework.http.HttpStatus
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.util.*
 
 
 @RestController
@@ -20,8 +22,12 @@ class ThreadController(
 
     //입장 전 검증 로직 검증 후 result 기반으로 입장여부 결정 후 입장시켜주면 됨
     @PostMapping("/verify")
-    fun verifyUser(@RequestBody request: enterDiscussionRequestDto) {
+    fun verifyUser(@RequestBody request: EnterRequestDto) :ResponseEntity<String> {
 
+        val verifyResult = request.userId + "님이 " + request.clsId + "의 " + request.grpId + "에 입장하였습니다."
+        println(verifyResult)
+
+        return ResponseEntity(verifyResult, HttpStatus.OK)
 
     }
 
@@ -35,8 +41,11 @@ class ThreadController(
 
 
     //채팅방 나가기
-    @PostMapping("/sessionOut")
-    fun sessionOut() {
+    @PostMapping("/delete")
+    fun sessionOut(@RequestBody request: DeleteDiscussionRequestDto): ResponseEntity<String> {
+
+        threadManageService.removeGroupChannel(request.clsId, UUID.fromString(request.grpId))
+        return ResponseEntity("Success", HttpStatus.OK)
 
     }
 

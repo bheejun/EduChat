@@ -1,5 +1,6 @@
 package org.eduai.educhat.service.impl
 
+import org.eduai.educhat.config.TimeZoneConfig
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.entity.DiscussionGrp
@@ -10,6 +11,8 @@ import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
 import org.eduai.educhat.service.ThreadManageService
 import org.springframework.stereotype.Service
+import java.time.Instant
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
@@ -17,7 +20,8 @@ class GroupManageServiceImpl(
     private val threadManageService: ThreadManageService,
     private val userMstRepository: UserMstRepository,
     private val grpRepo: DiscussionGrpRepository,
-    private val grpMemRepo: DiscussionGrpMemberRepository
+    private val grpMemRepo: DiscussionGrpMemberRepository,
+    private val timeZoneConfig: TimeZoneConfig
 ) : GroupManageService {
 
     override fun getStudentList(): List<List<String>> {
@@ -28,15 +32,23 @@ class GroupManageServiceImpl(
 
     override fun createGroup(createGroupRequestDto: CreateGroupRequestDto) {
         val clsId = createGroupRequestDto.clsId
-        val grpId = UUID.randomUUID()
+
+        //인서트 시간 동기화
+        val syncTimestamp = LocalDateTime.now()
 
         createGroupRequestDto.groups.forEach { group ->
+            //그룹별 아이디 부여
+            val grpId = UUID.randomUUID()
+
             grpRepo.saveAndFlush(DiscussionGrp(
                 grpId = grpId,
                 grpNo = group.groupNo,
                 clsId = clsId,
                 grpNm = group.groupNm,
-                grpTopic = group.topic
+                grpTopic = group.topic,
+                isActive = "ACT",
+                insDt = syncTimestamp,
+                updDt = syncTimestamp
             ))
 
             threadManageService.createGroupChannel(clsId, grpId)
@@ -50,7 +62,9 @@ class GroupManageServiceImpl(
                     id = memRepoId,
                     grpId = grpId,
                     userId = memberId,
-                    role = "STUD"
+                    role = "STUD",
+                    insDt = syncTimestamp,
+                    updDt = syncTimestamp
                 ))
             }
 
@@ -60,6 +74,6 @@ class GroupManageServiceImpl(
 
     override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscussionGrp> {
 
-        return grpRepo.findAllByClsId(getDiscussionListRequestDto.clsId)
+        return grpRepo.findAllByClsIdAndIsActive(getDiscussionListRequestDto.clsId, "ACT")
     }
 }

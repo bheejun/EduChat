@@ -2,8 +2,8 @@ package org.eduai.educhat.service.impl
 
 import org.eduai.educhat.config.RedisConfig
 import org.eduai.educhat.dto.request.RedisMessageRequestDto
-import org.eduai.educhat.entity.DiscussionChatSession
-import org.eduai.educhat.repository.DiscussionChatSessionRepository
+import org.eduai.educhat.repository.DiscussionGrpRepository
+import org.eduai.educhat.service.RedisSubscribeService
 import org.eduai.educhat.service.ThreadManageService
 import org.eduai.educhat.service.WebSocketService
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -17,7 +17,8 @@ class ThreadManageServiceImpl(
     private val redisMessageListenerContainer: RedisMessageListenerContainer,
     private val redisTemplate: StringRedisTemplate,
     private val webSocketService: WebSocketService,
-    private val sessionRepo: DiscussionChatSessionRepository
+    private val grpRepo : DiscussionGrpRepository,
+    private val subsService: RedisSubscribeService
 ) : ThreadManageService {
 
     private fun getSessionListKey(clsId: String): String {
@@ -28,16 +29,10 @@ class ThreadManageServiceImpl(
         val topicName = "chat:$groupId"
 
         redisConfig.addChannelForGroup(redisMessageListenerContainer, this, groupId)
-
-        sessionRepo.save(
-            DiscussionChatSession(
-                discussionSessionId = groupId,
-                grpId = groupId,
-                isActive = "ACT"
-            )
-        )
+        redisConfig.subscribeNewGroupChannel(redisMessageListenerContainer, subsService, groupId.toString())
         val sessionListKey = getSessionListKey(clsId)
         redisTemplate.opsForHash<String, String>().put(sessionListKey, groupId.toString(), topicName)
+
 
         println("채팅방 생성: $topicName (Group ID: $groupId)")
     }
@@ -45,7 +40,10 @@ class ThreadManageServiceImpl(
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
         redisConfig.removeChannelForGroup(redisMessageListenerContainer, groupId)
 
-        sessionRepo.updateStatusByGrpId(groupId, "DEL")
+        val updateResult = grpRepo.updateGrpStatus(groupId, "DEL")
+        if (updateResult == 0) {
+            throw IllegalArgumentException("채팅방이 존재하지 않습니다.")
+        }
         val sessionListKey = getSessionListKey(clsId)
         redisTemplate.opsForHash<String, String>().delete(sessionListKey, groupId.toString())
 
@@ -64,9 +62,11 @@ class ThreadManageServiceImpl(
     }
 
     override fun receiveMessage(groupId: UUID, message: String) {
-        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, groupId.toString())
-            ?: throw IllegalArgumentException("🚫 유효하지 않은 채널입니다!")
-
-        webSocketService.sendMessageToClients(topicName, message)
+//        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, groupId.toString())
+//            ?: throw IllegalArgumentException("🚫 유효하지 않은 채널입니다!")
+//
+//        webSocketService.sendMessageToClients(topicName, message)
     }
+
+
 }
