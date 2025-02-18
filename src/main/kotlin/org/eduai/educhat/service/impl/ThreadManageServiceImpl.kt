@@ -1,72 +1,77 @@
+
 package org.eduai.educhat.service.impl
 
-import org.eduai.educhat.config.RedisConfig
-import org.eduai.educhat.dto.request.RedisMessageRequestDto
-import org.eduai.educhat.repository.DiscussionGrpRepository
-import org.eduai.educhat.service.RedisSubscribeService
+
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.eduai.educhat.dto.request.SendMessageRequestDto
+import org.eduai.educhat.service.ChannelManageService
+import org.eduai.educhat.service.KeyGeneratorService
 import org.eduai.educhat.service.ThreadManageService
-import org.eduai.educhat.service.WebSocketService
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.data.redis.listener.RedisMessageListenerContainer
 import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
 class ThreadManageServiceImpl(
-    private val redisConfig: RedisConfig,
-    private val redisMessageListenerContainer: RedisMessageListenerContainer,
     private val redisTemplate: StringRedisTemplate,
-    private val webSocketService: WebSocketService,
-    private val grpRepo : DiscussionGrpRepository,
-    private val subsService: RedisSubscribeService
-) : ThreadManageService {
+    private val channelManageService: ChannelManageService,
+    private val keyGenService: KeyGeneratorService
+) : ThreadManageService{
 
-    private fun getSessionListKey(clsId: String): String {
-        return "chat_sessions:$clsId"
-    }
 
     override fun createGroupChannel(clsId: String, groupId: UUID) {
+
+        val sessionListKey = keyGenService.generateRedisSessionKey(clsId)
+        val sessionGrpKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
         val topicName = "chat:$groupId"
 
-        redisConfig.addChannelForGroup(redisMessageListenerContainer, this, groupId)
-        redisConfig.subscribeNewGroupChannel(redisMessageListenerContainer, subsService, groupId.toString())
-        val sessionListKey = getSessionListKey(clsId)
-        redisTemplate.opsForHash<String, String>().put(sessionListKey, groupId.toString(), topicName)
+        channelManageService.createGroupChannel(sessionGrpKey)
+        redisTemplate.opsForHash<String, String>().put(sessionListKey, sessionGrpKey, topicName)
 
-
-        println("채팅방 생성: $topicName (Group ID: $groupId)")
+        println("채팅방 생성 완료: $topicName (Group ID: $groupId)")
     }
 
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
-        redisConfig.removeChannelForGroup(redisMessageListenerContainer, groupId)
 
-        val updateResult = grpRepo.updateGrpStatus(groupId, "DEL")
-        if (updateResult == 0) {
-            throw IllegalArgumentException("채팅방이 존재하지 않습니다.")
-        }
-        val sessionListKey = getSessionListKey(clsId)
-        redisTemplate.opsForHash<String, String>().delete(sessionListKey, groupId.toString())
+        val sessionListKey = keyGenService.generateRedisSessionKey(clsId)
+        val sessionGrpKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
 
-        println("채팅방 삭제: (Group ID: $groupId)")
+        channelManageService.removeGroupChannel(sessionGrpKey)
+
+        redisTemplate.opsForHash<String, String>().delete(sessionListKey, sessionGrpKey)
+
+        println("채팅방 삭제 완료: (Group ID: $groupId)")
     }
 
-    override fun sendMessage(redisMessageRequestDto: RedisMessageRequestDto) {
-        val sessionListKey = getSessionListKey(redisMessageRequestDto.clsId)
-        val message = redisMessageRequestDto.message
-        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, redisMessageRequestDto.grpId)
-            ?: throw IllegalArgumentException("")
+    override fun sendMessageToRedis(sendMessageRequestDto: SendMessageRequestDto) {
 
-        redisTemplate.convertAndSend(topicName, message)
+        val sessionListKey = keyGenService.generateRedisSessionKey(sendMessageRequestDto.clsId)
+        val sessionGrpKey = keyGenService.generateRedisSessionHashKey(sendMessageRequestDto.grpId)
 
-        println("Redis 전송됨: $message → 채널: $topicName")
+        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, sessionGrpKey)
+            ?: throw IllegalArgumentException("유효한 채널이 아님")
+
+        val messageJson = jacksonObjectMapper().writeValueAsString(sendMessageRequestDto)
+
+        //TODO : 여기에 채팅 로그랑 레디스 리스트에 채팅내역 남기고 DB에 저장하는 로직은 배치로 구현해서 적용하자.
+        saveMessageLog(sendMessageRequestDto)
+
+        redisTemplate.convertAndSend(topicName, messageJson)
+
+        println("📤 Redis 전송됨: $messageJson → 채널: $topicName")
     }
 
-    override fun receiveMessage(groupId: UUID, message: String) {
-//        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, groupId.toString())
-//            ?: throw IllegalArgumentException("🚫 유효하지 않은 채널입니다!")
-//
-//        webSocketService.sendMessageToClients(topicName, message)
+    override fun saveMessageLog(sendMessageRequestDto : SendMessageRequestDto) {
+
+        val clsId = sendMessageRequestDto.clsId
+        val grpId = sendMessageRequestDto.grpId
+
+        val logListKeyForRedis = keyGenService.generateRedisLogKey(clsId, grpId)
+
+        val messageJson = jacksonObjectMapper().writeValueAsString(sendMessageRequestDto)
+
+        redisTemplate.opsForList().leftPush(logListKeyForRedis, messageJson)
+        redisTemplate.opsForList().trim(logListKeyForRedis, 0, 99)
+
     }
-
-
 }

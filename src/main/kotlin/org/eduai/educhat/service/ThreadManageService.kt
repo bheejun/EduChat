@@ -1,11 +1,12 @@
 package org.eduai.educhat.service
 
-import org.eduai.educhat.dto.request.RedisMessageRequestDto
+import org.eduai.educhat.dto.request.SendMessageRequestDto
 import java.util.UUID
 
 interface ThreadManageService {
     fun createGroupChannel(clsId: String, groupId: UUID)
     fun removeGroupChannel(clsId: String, groupId: UUID)
-    fun sendMessage(redisMessageRequestDto: RedisMessageRequestDto)
-    fun receiveMessage(groupId: UUID, message: String)
+    fun sendMessageToRedis(sendMessageRequestDto: SendMessageRequestDto)
+    fun saveMessageLog(sendMessageRequestDto: SendMessageRequestDto)
+
 }

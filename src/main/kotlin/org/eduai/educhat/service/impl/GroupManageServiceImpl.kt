@@ -1,7 +1,7 @@
 package org.eduai.educhat.service.impl
 
-import org.eduai.educhat.config.TimeZoneConfig
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
+import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.entity.DiscussionGrp
 import org.eduai.educhat.entity.DiscussionGrpMember
@@ -11,17 +11,15 @@ import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
 import org.eduai.educhat.service.ThreadManageService
 import org.springframework.stereotype.Service
-import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
 
 @Service
 class GroupManageServiceImpl(
-    private val threadManageService: ThreadManageService,
     private val userMstRepository: UserMstRepository,
     private val grpRepo: DiscussionGrpRepository,
     private val grpMemRepo: DiscussionGrpMemberRepository,
-    private val timeZoneConfig: TimeZoneConfig
+    private val threadManageService: ThreadManageService
 ) : GroupManageService {
 
     override fun getStudentList(): List<List<String>> {
@@ -75,5 +73,18 @@ class GroupManageServiceImpl(
     override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscussionGrp> {
 
         return grpRepo.findAllByClsIdAndIsActive(getDiscussionListRequestDto.clsId, "ACT")
+    }
+
+    override fun deleteGroup(deleteGroupRequestDto: DeleteDiscussionRequestDto) {
+
+        val clsId = deleteGroupRequestDto.clsId
+        val grpId = UUID.fromString(deleteGroupRequestDto.grpId)
+
+        val updateResult = grpRepo.updateGrpStatus(grpId, "DEL")
+        if (updateResult == 0) {
+            throw IllegalArgumentException("채팅방이 존재하지 않습니다.")
+        }
+        threadManageService.removeGroupChannel(clsId, grpId)
+
     }
 }

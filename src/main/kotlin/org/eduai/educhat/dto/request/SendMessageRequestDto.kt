@@ -1,6 +1,6 @@
 package org.eduai.educhat.dto.request
 
-data class RedisMessageRequestDto(
+data class SendMessageRequestDto(
     val sender: String,
     val grpId: String,
     val clsId: String,

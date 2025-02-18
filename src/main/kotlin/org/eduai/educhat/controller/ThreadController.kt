@@ -1,9 +1,6 @@
 package org.eduai.educhat.controller
 
-import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.EnterRequestDto
-import org.eduai.educhat.dto.request.RedisMessageRequestDto
-import org.eduai.educhat.dto.response.RedisMessageResponseDto
 import org.eduai.educhat.service.ThreadManageService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -11,7 +8,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.*
 
 
 @RestController
@@ -30,25 +26,6 @@ class ThreadController(
         return ResponseEntity(verifyResult, HttpStatus.OK)
 
     }
-
-    //메시지 전송
-    @PostMapping("/publish")
-    fun publishMessage(@RequestBody request: RedisMessageRequestDto): ResponseEntity<RedisMessageResponseDto> {
-
-        threadManageService.sendMessage(request)
-        return ResponseEntity(RedisMessageResponseDto(), HttpStatus.OK)
-    }
-
-
-    //채팅방 나가기
-    @PostMapping("/delete")
-    fun sessionOut(@RequestBody request: DeleteDiscussionRequestDto): ResponseEntity<String> {
-
-        threadManageService.removeGroupChannel(request.clsId, UUID.fromString(request.grpId))
-        return ResponseEntity("Success", HttpStatus.OK)
-
-    }
-
     //채팅방 재 입장시 대화내용 불러오기
     @PostMapping("/restore")
     fun restoreChat() {
