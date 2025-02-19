@@ -3,7 +3,10 @@ package org.eduai.educhat.service.impl
 
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.eduai.educhat.dto.request.EnterThreadRequestDto
 import org.eduai.educhat.dto.request.SendMessageRequestDto
+import org.eduai.educhat.dto.response.EnterThreadResponseDto
+import org.eduai.educhat.repository.DiscussionGrpMemberRepository
 import org.eduai.educhat.service.ChannelManageService
 import org.eduai.educhat.service.KeyGeneratorService
 import org.eduai.educhat.service.ThreadManageService
@@ -15,7 +18,8 @@ import java.util.*
 class ThreadManageServiceImpl(
     private val redisTemplate: StringRedisTemplate,
     private val channelManageService: ChannelManageService,
-    private val keyGenService: KeyGeneratorService
+    private val keyGenService: KeyGeneratorService,
+    private val grpMemRepo: DiscussionGrpMemberRepository
 ) : ThreadManageService{
 
 
@@ -33,27 +37,28 @@ class ThreadManageServiceImpl(
 
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
 
-        val sessionListKey = keyGenService.generateRedisSessionKey(clsId)
-        val sessionGrpKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
+        val clsSessionKey = keyGenService.generateRedisSessionKey(clsId)
+        val grpSessionKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
 
-        channelManageService.removeGroupChannel(sessionGrpKey)
+        channelManageService.removeGroupChannel(grpSessionKey)
 
-        redisTemplate.opsForHash<String, String>().delete(sessionListKey, sessionGrpKey)
+        redisTemplate.opsForHash<String, String>().delete(clsSessionKey, grpSessionKey)
 
         println("채팅방 삭제 완료: (Group ID: $groupId)")
     }
 
     override fun sendMessageToRedis(sendMessageRequestDto: SendMessageRequestDto) {
 
-        val sessionListKey = keyGenService.generateRedisSessionKey(sendMessageRequestDto.clsId)
-        val sessionGrpKey = keyGenService.generateRedisSessionHashKey(sendMessageRequestDto.grpId)
+        val clsSessionKey  = keyGenService.generateRedisSessionKey(sendMessageRequestDto.clsId)
+        val grpSessionKey = keyGenService.generateRedisSessionHashKey(sendMessageRequestDto.grpId)
 
-        val topicName = redisTemplate.opsForHash<String, String>().get(sessionListKey, sessionGrpKey)
+        val topicName = redisTemplate.opsForHash<String, String>().get(clsSessionKey, grpSessionKey)
             ?: throw IllegalArgumentException("유효한 채널이 아님")
+
+        println(topicName)
 
         val messageJson = jacksonObjectMapper().writeValueAsString(sendMessageRequestDto)
 
-        //TODO : 여기에 채팅 로그랑 레디스 리스트에 채팅내역 남기고 DB에 저장하는 로직은 배치로 구현해서 적용하자.
         saveMessageLog(sendMessageRequestDto)
 
         redisTemplate.convertAndSend(topicName, messageJson)
@@ -72,6 +77,52 @@ class ThreadManageServiceImpl(
 
         redisTemplate.opsForList().leftPush(logListKeyForRedis, messageJson)
         redisTemplate.opsForList().trim(logListKeyForRedis, 0, 99)
+
+    }
+
+    override fun enterChannel(enterThreadRequestDto: EnterThreadRequestDto) : EnterThreadResponseDto {
+        val userId = enterThreadRequestDto.userId
+        val clsId = enterThreadRequestDto.clsId
+        val grpId = enterThreadRequestDto.grpId
+
+        if(verifyUser(userId, UUID.fromString(grpId))){
+            return EnterThreadResponseDto(
+                userId = userId,
+                clsId = clsId,
+                grpId = grpId,
+                messages =  redisTemplate.opsForList().range(
+                    keyGenService.generateRedisLogKey(clsId, grpId), 0, 99)
+                    ?: listOf("Empty Session")
+            )
+        }else{
+            throw IllegalArgumentException("Not valid User")
+        }
+
+
+    }
+
+    override fun restoreThread(enterThreadRequestDto: EnterThreadRequestDto): EnterThreadResponseDto {
+        val userId = enterThreadRequestDto.userId
+        val clsId = enterThreadRequestDto.clsId
+        val grpId = enterThreadRequestDto.grpId
+
+        if(verifyUser(userId, UUID.fromString(grpId))){
+            return EnterThreadResponseDto(
+                userId = userId,
+                clsId = clsId,
+                grpId = grpId,
+                messages =  redisTemplate.opsForList().range(
+                    keyGenService.generateRedisLogKey(clsId, grpId), 0, 99)
+                    ?: listOf("Empty Session")
+            )
+        }else{
+            throw IllegalArgumentException("Not valid User")
+        }
+    }
+
+    private fun verifyUser(userId: String, grpId : UUID) : Boolean {
+
+        return grpMemRepo.findGrpMemByUserId(userId, grpId) ?: false
 
     }
 }

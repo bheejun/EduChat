@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 class KeyGeneratorService {
 
     fun generateRedisSessionKey(clsId: String): String {
-        return "chat_sessions:$clsId"
+        return "cls_sessions_prefix:$clsId"
     }
 
     fun generateRedisSessionHashKey(groupId: String) : String{
@@ -14,14 +14,18 @@ class KeyGeneratorService {
     }
 
     fun generateRedisLogKey(clsId: String, groupId: String): String {
-        return "chat_logs:$clsId:$groupId"
+        return "chat_logs_prefix:$clsId:$groupId"
     }
 
     fun generatePostgresLogKey(clsId: String, groupId: String): String {
-        return "chat_logs:$clsId:$groupId"
+        return "chat_logs_prefix:$clsId:$groupId"
     }
 
-    fun generateRedisLogChunckKey(clsId: String, groupId: String, chunkId: String): String {
-        return "chat_logs:$clsId:$groupId:$chunkId"
+    fun generateChunkKey(clsId: String, groupId: String, chunkId: String): String {
+        return "chat_logs_prefix:$clsId:$groupId:$chunkId"
+    }
+
+    fun generateRestoreKey(): String {
+        return "cls_sessions_prefix:*"
     }
 }

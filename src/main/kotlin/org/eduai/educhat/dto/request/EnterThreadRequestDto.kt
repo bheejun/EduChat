@@ -1,6 +1,6 @@
 package org.eduai.educhat.dto.request
 
-data class EnterRequestDto(
+data class EnterThreadRequestDto(
     val clsId: String,
     val userId: String,
     val grpId: String
