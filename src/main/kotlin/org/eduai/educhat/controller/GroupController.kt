@@ -5,7 +5,6 @@ import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.dto.response.GetDiscussionListResponseDto
 import org.eduai.educhat.service.GroupManageService
-import org.eduai.educhat.service.ThreadManageService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,8 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/discussion/group")
 class GroupController(
-    private val groupManageService: GroupManageService,
-    private val threadManageService: ThreadManageService
+    private val groupManageService: GroupManageService
 ) {
     @PostMapping("/list")
     fun getDiscussList(@RequestBody getDiscussionListRequestDto: GetDiscussionListRequestDto ) : ResponseEntity<GetDiscussionListResponseDto> {

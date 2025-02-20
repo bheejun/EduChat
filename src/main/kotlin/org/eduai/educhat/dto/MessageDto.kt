@@ -1,6 +1,7 @@
 package org.eduai.educhat.dto
 
-data class ReceivedMessageDto(
+
+data class MessageDto(
     val sender: String,
     val grpId: String,
     val clsId: String,

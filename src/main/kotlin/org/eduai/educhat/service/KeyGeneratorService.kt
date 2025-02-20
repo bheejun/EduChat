@@ -21,8 +21,12 @@ class KeyGeneratorService {
         return "chat_logs_prefix:$clsId:$groupId"
     }
 
-    fun generateChunkKey(clsId: String, groupId: String, chunkId: String): String {
-        return "chat_logs_prefix:$clsId:$groupId:$chunkId"
+    fun generateChunkKey(clsId: String, groupId: String): String {
+        return "chunk_prefix:$clsId:$groupId"
+    }
+
+    fun generateChunkNum(clsId: String, groupId: String, chunkKey: String): String {
+        return "chat_logs_prefix:$clsId:$groupId:$chunkKey"
     }
 
     fun generateRestoreKey(): String {

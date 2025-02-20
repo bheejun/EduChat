@@ -17,4 +17,7 @@ interface DiscussionGrpMemberRepository : JpaRepository<DiscussionGrpMember, UUI
             "", nativeQuery = true)
     fun findGrpMemByUserId(userId: String, grpId: UUID) : Boolean?
 
+
+    fun findGrpMemByUserIdAndGrpId(userId: String, grpId: UUID) : DiscussionGrpMember?
+
 }

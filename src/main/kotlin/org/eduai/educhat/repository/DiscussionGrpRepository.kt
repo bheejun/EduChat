@@ -24,4 +24,20 @@ interface DiscussionGrpRepository : JpaRepository<DiscussionGrp, UUID>{
 
     fun findAllByClsIdAndIsActive(clsId: String, isActive: String): List<DiscussionGrp>
 
+
+    @Query("""
+        select * 
+        from discussion_grp as DG
+        where DG.cls_id = :clsId
+        and DG.is_active = 'ACT'
+        AND EXISTS (
+            select 1 
+            from discussion_grp_member as DGM
+            where DGM.grp_id = DG.grp_id
+            AND DGM.user_id = :userId
+        )
+    """ , nativeQuery = true)
+    fun findGrpListByClsIdAndUserId(clsId: String, userId: String): List<DiscussionGrp>
+
+
 }

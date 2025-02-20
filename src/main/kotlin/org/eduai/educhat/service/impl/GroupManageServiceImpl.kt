@@ -5,6 +5,7 @@ import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.entity.DiscussionGrp
 import org.eduai.educhat.entity.DiscussionGrpMember
+import org.eduai.educhat.repository.ClsMstRepository
 import org.eduai.educhat.repository.DiscussionGrpMemberRepository
 import org.eduai.educhat.repository.DiscussionGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
@@ -71,8 +72,23 @@ class GroupManageServiceImpl(
     }
 
     override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscussionGrp> {
+        val userDiv = getDiscussionListRequestDto.userDiv
+        val clsId = getDiscussionListRequestDto.clsId
 
-        return grpRepo.findAllByClsIdAndIsActive(getDiscussionListRequestDto.clsId, "ACT")
+        return when (userDiv) {
+            //교수일 경우 전부 보여줘
+            "O10" -> {
+                grpRepo.findAllByClsIdAndIsActive(clsId, "ACT")
+            }
+            //운영자 일 경우 팅겨버려
+            "O20" -> {
+                throw IllegalArgumentException("invalid request")
+            }
+            //학생일 경우 자신이 속한 그룹만 보여줘
+            else -> {
+                grpRepo.findGrpListByClsIdAndUserId(clsId, getDiscussionListRequestDto.userId)
+            }
+        }
     }
 
     override fun deleteGroup(deleteGroupRequestDto: DeleteDiscussionRequestDto) {

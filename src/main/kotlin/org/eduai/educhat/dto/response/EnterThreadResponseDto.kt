@@ -1,9 +1,6 @@
 package org.eduai.educhat.dto.response
 
 data class EnterThreadResponseDto(
-
-    val clsId: String,
-    val userId: String,
-    val grpId: String,
-    val messages: List<String>
+    val statusCode : String,
+    val statusToken : String
 )
