@@ -1,14 +1,14 @@
 package org.eduai.educhat.config
 
 
-import org.eduai.educhat.service.CustomRedisMessageListener
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory
+import org.springframework.data.redis.connection.RedisPassword
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.data.redis.listener.ChannelTopic
 import org.springframework.data.redis.listener.RedisMessageListenerContainer
 
 @Configuration
@@ -19,9 +19,16 @@ class RedisConfig {
     @Value("\${spring.data.redis.port}")
     private var redisPort: Int = 6379
 
+    @Value("\${spring.data.redis.password}")
+    private lateinit var redisPassword: RedisPassword
+
     @Bean
     fun redisConnectionFactory(): RedisConnectionFactory {
-        return LettuceConnectionFactory(redisHost, redisPort)
+        val redisConnectionConfiguration = RedisStandaloneConfiguration()
+        redisConnectionConfiguration.hostName = redisHost
+        redisConnectionConfiguration.port = redisPort
+        redisConnectionConfiguration.password= redisPassword
+        return LettuceConnectionFactory(redisConnectionConfiguration)
     }
 
     @Bean

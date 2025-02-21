@@ -35,7 +35,7 @@ class SecurityConfig {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         val configuration = CorsConfiguration()
-        configuration.allowedOriginPatterns = listOf("http://localhost:3000") // React 주소 허용
+        configuration.allowedOriginPatterns = listOf("http://localhost:3000", "http://58.29.36.4:3500")
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
         configuration.allowCredentials = true // 인증 정보 포함 허용

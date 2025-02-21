@@ -14,6 +14,7 @@ import org.eduai.educhat.repository.DiscussionGrpMemberRepository
 import org.eduai.educhat.service.ChannelManageService
 import org.eduai.educhat.service.KeyGeneratorService
 import org.eduai.educhat.service.ThreadManageService
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -29,16 +30,22 @@ class ThreadManageServiceImpl(
 ) : ThreadManageService{
 
 
+    companion object {
+        private val logger = LoggerFactory.getLogger(ThreadManageServiceImpl::class.java)
+    }
+
+
+
     override fun createGroupChannel(clsId: String, groupId: UUID) {
 
         val sessionListKey = keyGenService.generateRedisSessionKey(clsId)
         val sessionGrpKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
         val topicName = "chat:$groupId"
 
-        channelManageService.createGroupChannel(sessionGrpKey)
+        channelManageService.createGroupChannel(topicName)
         redisTemplate.opsForHash<String, String>().put(sessionListKey, sessionGrpKey, topicName)
 
-        println("채팅방 생성 완료: $topicName (Group ID: $groupId)")
+        logger.info("채팅방 생성 완료: $topicName (Group ID: $groupId)")
     }
 
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
@@ -50,7 +57,7 @@ class ThreadManageServiceImpl(
 
         redisTemplate.opsForHash<String, String>().delete(clsSessionKey, grpSessionKey)
 
-        println("채팅방 삭제 완료: (Group ID: $groupId)")
+        logger.info("채팅방 삭제 완료: (Group ID: $groupId)")
     }
 
     override fun sendMessageToRedis(sendMessageRequestDto: SendMessageRequestDto) {
@@ -63,7 +70,7 @@ class ThreadManageServiceImpl(
         val topicName = redisTemplate.opsForHash<String, String>().get(clsSessionKey, grpSessionKey)
             ?: throw IllegalArgumentException("유효한 채널이 아님")
 
-        println(topicName)
+        logger.info(topicName)
 
         val messageJson = jacksonObjectMapper().writeValueAsString(MessageDto(
             clsId = clsId,
@@ -77,36 +84,34 @@ class ThreadManageServiceImpl(
 
         redisTemplate.convertAndSend(topicName, messageJson)
 
-        println("📤 Redis 전송됨: $messageJson → 채널: $topicName")
+        logger.info("📤 Redis 전송됨: $messageJson → 채널: $topicName")
     }
 
     override fun saveMessageLog(clsId: String, grpId: String, messageJson: String) {
-        // 현재 청크 번호를 저장하는 키 (없으면 0부터 시작)
-        val currentChunkKey = "chat_logs_prefix:$clsId:$grpId:current_chunk"
+        // 현재 청크 번호를 위한 키 생성
+        val currentChunkKey = keyGenService.generateCurrentChunkKey(clsId, grpId)
 
-        // Redis에서 현재 청크 번호를 가져옵니다. (없으면 "0" 사용)
-        val chunkIdStr = redisTemplate.opsForValue().get(currentChunkKey) ?: "0"
-        val chunkId = chunkIdStr.toIntOrNull() ?: 0
+        // 청크 번호 가져오기 (없으면 "0"으로 시작)
+        val chunkId = (redisTemplate.opsForValue().get(currentChunkKey) ?: "0").toIntOrNull() ?: 0
 
-        // clsId와 grpId, 그리고 현재 청크 번호를 기반으로 청크 로그 키를 생성합니다.
-        val chunkLogKey = keyGenService.generateChunkNum(clsId, grpId, chunkId.toString())
+        // 현재 청크의 메시지 로그 키 생성
+        val chunkLogKey = keyGenService.generateLogKey(clsId, grpId, chunkId)
 
-        // 현재 청크 리스트의 크기를 확인합니다.
+        // 현재 청크에 저장된 메시지 개수를 확인
         val currentChunkSize = redisTemplate.opsForList().size(chunkLogKey) ?: 0
 
         if (currentChunkSize >= 100) {
-            // 현재 청크가 100개 이상의 메시지를 보유하고 있다면,
-            // 새로운 청크 번호로 전환하고 메시지를 새 청크에 저장합니다.
+            // 청크가 100개 이상의 메시지를 보유하면 새로운 청크 생성
             val newChunkId = chunkId + 1
             redisTemplate.opsForValue().set(currentChunkKey, newChunkId.toString())
-
-            val newChunkLogKey = keyGenService.generateChunkNum(clsId, grpId, newChunkId.toString())
-            redisTemplate.opsForList().leftPush(newChunkLogKey, messageJson)
+            val newChunkLogKey = keyGenService.generateLogKey(clsId, grpId, newChunkId)
+            redisTemplate.opsForList().rightPush(newChunkLogKey, messageJson)
         } else {
-            // 현재 청크에 여유가 있다면 그대로 메시지를 저장합니다.
-            redisTemplate.opsForList().leftPush(chunkLogKey, messageJson)
+            // 청크에 여유가 있으면 그대로 메시지를 추가
+            redisTemplate.opsForList().rightPush(chunkLogKey, messageJson)
         }
     }
+
 
 
     override fun enterChannel(enterThreadRequestDto: EnterThreadRequestDto) : EnterThreadResponseDto {
@@ -115,7 +120,7 @@ class ThreadManageServiceImpl(
         val grpId = UUID.fromString(enterThreadRequestDto.grpId)
         val userDiv = enterThreadRequestDto.userDiv
 
-        println("$userId, $clsId, $grpId, $userDiv")
+        logger.info("$userId, $clsId, $grpId, $userDiv")
 
         if(verifyUser(userId, grpId, userDiv, clsId)){
             return EnterThreadResponseDto(
@@ -138,22 +143,38 @@ class ThreadManageServiceImpl(
         val grpId = enterThreadRequestDto.grpId
         val userDiv = enterThreadRequestDto.userDiv
 
+        logger.info("$userId, $clsId, $grpId, $userDiv")
 
-        println("$userId, $clsId, $grpId, $userDiv")
-
-        if(verifyUser(userId, UUID.fromString(grpId), userDiv, clsId)){
-            return RestoreThreadResponseDto(
-                userId = userId,
-                clsId = clsId,
-                grpId = grpId,
-                messages =  redisTemplate.opsForList().range(
-                    keyGenService.generateRedisLogKey(clsId, grpId), 0, 99)
-                    ?: listOf("Empty Session")
-            )
-        }else{
+        if (!verifyUser(userId, UUID.fromString(grpId), userDiv, clsId)) {
             throw IllegalArgumentException("Not valid User")
         }
+
+        // 현재 청크 번호를 조회
+        val currentChunkKey = keyGenService.generateCurrentChunkKey(clsId, grpId)
+        val currentChunkStr = redisTemplate.opsForValue().get(currentChunkKey) ?: "0"
+        val currentChunk = currentChunkStr.toIntOrNull() ?: 0
+
+        // 각 청크에서 메시지를 가져와 모두 합치기
+        val messagesList = mutableListOf<String>()
+        for (chunkIndex in 0..currentChunk) {
+            val logKey = keyGenService.generateLogKey(clsId, grpId, chunkIndex)
+            val chunkMessages = redisTemplate.opsForList().range(logKey, 0, -1)
+            if (!chunkMessages.isNullOrEmpty()) {
+                messagesList.addAll(chunkMessages)
+            }
+        }
+        if (messagesList.isEmpty()) {
+            messagesList.add("Empty Session")
+        }
+
+        return RestoreThreadResponseDto(
+            userId = userId,
+            clsId = clsId,
+            grpId = grpId,
+            messages = messagesList
+        )
     }
+
 
     private fun verifyUser(userId: String, grpId : UUID, userDiv : String, clsId: String) : Boolean {
         return if(userDiv == "O10") {

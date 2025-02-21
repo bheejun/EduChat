@@ -1,5 +1,6 @@
 package org.eduai.educhat.service.impl
 
+import org.eduai.educhat.controller.MessageController
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
@@ -11,6 +12,7 @@ import org.eduai.educhat.repository.DiscussionGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
 import org.eduai.educhat.service.ThreadManageService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.util.*
@@ -22,6 +24,10 @@ class GroupManageServiceImpl(
     private val grpMemRepo: DiscussionGrpMemberRepository,
     private val threadManageService: ThreadManageService
 ) : GroupManageService {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(GroupManageServiceImpl::class.java)
+    }
 
     override fun getStudentList(): List<List<String>> {
 

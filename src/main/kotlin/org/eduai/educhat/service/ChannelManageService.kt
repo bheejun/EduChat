@@ -1,6 +1,8 @@
 package org.eduai.educhat.service
 
 import jakarta.annotation.PostConstruct
+import org.eduai.educhat.service.impl.ThreadManageServiceImpl
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.listener.RedisMessageListenerContainer
 import org.springframework.data.redis.listener.ChannelTopic
@@ -14,6 +16,9 @@ class ChannelManageService(
     private val customRedisMessageListener: CustomRedisMessageListener,
     private val keyGenService: KeyGeneratorService
 ) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(ChannelManageService::class.java)
+    }
 
     @PostConstruct
     fun restoreChannelsFromRedis() {
@@ -25,22 +30,21 @@ class ChannelManageService(
                 val topic = ChannelTopic(topicName)
 
                 redisMessageListenerContainer.addMessageListener(customRedisMessageListener, topic)
-                println("🔄 Redis에서 기존 채팅방 복원: $topicName (Group ID: $groupId)")
+                logger.info("🔄 Redis에서 기존 채팅방 복원: $topicName (Group ID: $groupId)")
             }
         }
     }
 
-    fun createGroupChannel(sessionGrpKey:String) {
-        val topic = ChannelTopic(sessionGrpKey)
-
+    // 이제 topicName을 직접 사용해서 구독을 등록
+    fun createGroupChannel(topicName: String) {
+        val topic = ChannelTopic(topicName)
         redisMessageListenerContainer.addMessageListener(customRedisMessageListener, topic)
-        println("✅ 채팅방 생성 및 구독 등록: $sessionGrpKey")
+        logger.info("✅ 채팅방 생성 및 구독 등록: $topicName")
     }
 
-    fun removeGroupChannel(sessionGrpKey: String) {
-        val topic = ChannelTopic(sessionGrpKey)
-
+    fun removeGroupChannel(topicName: String) {
+        val topic = ChannelTopic(topicName)
         redisMessageListenerContainer.removeMessageListener(customRedisMessageListener, topic)
-        println("🛑 채팅방 구독 해제됨: $sessionGrpKey")
+        logger.info("🛑 채팅방 구독 해제됨: $topicName")
     }
 }

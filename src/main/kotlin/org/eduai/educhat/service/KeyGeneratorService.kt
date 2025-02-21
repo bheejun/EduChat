@@ -13,20 +13,13 @@ class KeyGeneratorService {
         return "grp_prefix:$groupId"
     }
 
-    fun generateRedisLogKey(clsId: String, groupId: String): String {
-        return "chat_logs_prefix:$clsId:$groupId"
+    fun generateCurrentChunkKey(clsId: String, grpId: String): String {
+        return "chat_logs:$clsId:$grpId:current_chunk"
     }
 
-    fun generatePostgresLogKey(clsId: String, groupId: String): String {
-        return "chat_logs_prefix:$clsId:$groupId"
-    }
-
-    fun generateChunkKey(clsId: String, groupId: String): String {
-        return "chunk_prefix:$clsId:$groupId"
-    }
-
-    fun generateChunkNum(clsId: String, groupId: String, chunkKey: String): String {
-        return "chat_logs_prefix:$clsId:$groupId:$chunkKey"
+    // 특정 청크 번호에 해당하는 메시지 로그 키
+    fun generateLogKey(clsId: String, grpId: String, chunkIndex: Int): String {
+        return "chat_logs:$clsId:$grpId:$chunkIndex"
     }
 
     fun generateRestoreKey(): String {
