@@ -1,0 +1,13 @@
+FROM openjdk:17-jdk-slim
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV LANG=C.UTF-8
+ENV JAVA_TOOL_OPTIONS="-Duser.language=ko -Duser.region=KR -Duser.timezone=Asia/Seoul"
+
+WORKDIR /app
+
+COPY ./target/EduChat-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+CMD ["java", "-jar", "/app/app.jar", "--spring.profiles.active=cloud"]

@@ -4,12 +4,15 @@ services:
   hltutor-be:
     build:
       context: .
-      dockerfile: Dockerfile-be
-    container_name: hltutor-be
+      dockerfile: Dockerfile-discussion
+    container_name: hltutor-discussion-server
     ports:
-      - "8110:8080"
+      #- "8110:8080"
+      - "8084:8080"
     depends_on:
       - discussion-redis-server
+#    networks:
+#        - hallymtutor_prometheus_network
 
   discussion-redis-server:
     build:
@@ -17,4 +20,11 @@ services:
       dockerfile: Dockerfile-redis
     container_name: discussion-redis-server
     ports:
-      - "6379:6379"
+      #- "6379:6379"
+      - "8083:6379"
+#    networks:
+#      - hallymtutor_prometheus_network
+#
+#networks:
+#  hallymtutor_prometheus_network:
+#    external: true

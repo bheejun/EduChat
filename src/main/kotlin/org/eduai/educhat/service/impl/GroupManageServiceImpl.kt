@@ -1,13 +1,11 @@
 package org.eduai.educhat.service.impl
 
-import org.eduai.educhat.controller.MessageController
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
-import org.eduai.educhat.entity.DiscussionGrp
-import org.eduai.educhat.entity.DiscussionGrpMember
-import org.eduai.educhat.repository.ClsMstRepository
-import org.eduai.educhat.repository.DiscussionGrpMemberRepository
+import org.eduai.educhat.entity.DiscGrp
+import org.eduai.educhat.entity.DiscGrpMem
+import org.eduai.educhat.repository.DiscGrpMemRepository
 import org.eduai.educhat.repository.DiscussionGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
@@ -21,7 +19,7 @@ import java.util.*
 class GroupManageServiceImpl(
     private val userMstRepository: UserMstRepository,
     private val grpRepo: DiscussionGrpRepository,
-    private val grpMemRepo: DiscussionGrpMemberRepository,
+    private val grpMemRepo: DiscGrpMemRepository,
     private val threadManageService: ThreadManageService
 ) : GroupManageService {
 
@@ -45,7 +43,7 @@ class GroupManageServiceImpl(
             //그룹별 아이디 부여
             val grpId = UUID.randomUUID()
 
-            grpRepo.saveAndFlush(DiscussionGrp(
+            grpRepo.saveAndFlush(DiscGrp(
                 grpId = grpId,
                 grpNo = group.groupNo,
                 clsId = clsId,
@@ -63,11 +61,11 @@ class GroupManageServiceImpl(
             memberIdList.forEach { memberId ->
                 //그룹 멤버 저장
                 val memRepoId = UUID.randomUUID()
-                grpMemRepo.saveAndFlush(DiscussionGrpMember(
+                grpMemRepo.saveAndFlush(DiscGrpMem(
                     id = memRepoId,
                     grpId = grpId,
                     userId = memberId,
-                    role = "STUD",
+                    memRole = "STUD",
                     insDt = syncTimestamp,
                     updDt = syncTimestamp
                 ))
@@ -77,7 +75,7 @@ class GroupManageServiceImpl(
 
     }
 
-    override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscussionGrp> {
+    override fun getDiscussList(getDiscussionListRequestDto: GetDiscussionListRequestDto): List<DiscGrp> {
         val userDiv = getDiscussionListRequestDto.userDiv
         val clsId = getDiscussionListRequestDto.clsId
 

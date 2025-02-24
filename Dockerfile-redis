@@ -2,14 +2,7 @@
 FROM redis:latest
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install -y locales && \
-    echo "ko_KR.UTF-8 UTF-8" > /etc/locale.gen && \
-    locale-gen ko_KR.UTF-8
-
-ENV LANG=ko_KR.UTF-8
-ENV LC_ALL=ko_KR.UTF-8
-ENV DB_HOST host.docker.internal
+ENV LANG=C.UTF-8
 
 EXPOSE 6379
 

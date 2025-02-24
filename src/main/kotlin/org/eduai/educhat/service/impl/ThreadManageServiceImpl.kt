@@ -10,7 +10,7 @@ import org.eduai.educhat.dto.request.SendMessageRequestDto
 import org.eduai.educhat.dto.response.EnterThreadResponseDto
 import org.eduai.educhat.dto.response.RestoreThreadResponseDto
 import org.eduai.educhat.repository.ClsMstRepository
-import org.eduai.educhat.repository.DiscussionGrpMemberRepository
+import org.eduai.educhat.repository.DiscGrpMemRepository
 import org.eduai.educhat.service.ChannelManageService
 import org.eduai.educhat.service.KeyGeneratorService
 import org.eduai.educhat.service.ThreadManageService
@@ -26,7 +26,7 @@ class ThreadManageServiceImpl(
     private val channelManageService: ChannelManageService,
     private val keyGenService: KeyGeneratorService,
     private val clsRepo: ClsMstRepository,
-    private val grpMemRepo: DiscussionGrpMemberRepository,
+    private val grpMemRepo: DiscGrpMemRepository,
 ) : ThreadManageService{
 
 

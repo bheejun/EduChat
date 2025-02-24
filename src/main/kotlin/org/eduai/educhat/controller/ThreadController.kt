@@ -1,6 +1,5 @@
 package org.eduai.educhat.controller
 
-import org.eduai.educhat.controller.ThreadController.Companion.logger
 import org.eduai.educhat.dto.request.EnterThreadRequestDto
 import org.eduai.educhat.dto.request.RestoreThreadRequestDto
 import org.eduai.educhat.dto.response.EnterThreadResponseDto

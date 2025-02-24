@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
-    // war 플러그인 제거 → jar 빌드를 사용
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.jpa") version "1.9.25"
@@ -62,18 +61,26 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.processResources {
-    if (project.hasProperty("docker")) {
-        logger.info("Docker 빌드: application-onDokcer.properties를 application.properties로 치환")
-        // 기존의 application.properties 파일은 제외
-        exclude("application.properties")
-        // application-onDokcer.properties 파일을 application.properties 이름으로 복사
-        filesMatching("application-onDokcer.properties") {
-            rename { "application.properties" }
-        }
-    }
-}
-
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     mainClass.set("org.eduai.educhat.EduChatApplicationKt")
 }
+
+tasks.bootJar {
+    launchScript {
+        //properties["spring.profiles.active"] = "docker"
+        properties["spring.profiles.active"] = "cloud"
+        //properties["spring.profiles.active"] = "local"
+
+    }
+}
+
+
+tasks.processResources {
+    exclude("application-docker.properties")
+    //exclude("application-cloud.properties")
+    exclude("application-local.properties")
+}
+
+
+
+

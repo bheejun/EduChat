@@ -40,4 +40,6 @@ out/
 .kotlin
 
 application.properties
-application-onDocker.properties
+application-docker.properties
+application-local.properties
+application-cloud.properties
