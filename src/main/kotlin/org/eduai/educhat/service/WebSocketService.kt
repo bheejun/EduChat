@@ -1,7 +1,6 @@
 package org.eduai.educhat.service
 
-import org.eduai.educhat.service.impl.ThreadManageServiceImpl
-import org.eduai.educhat.util.handler.WebSocketHandler
+import org.eduai.educhat.common.handler.WebSocketHandler
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 

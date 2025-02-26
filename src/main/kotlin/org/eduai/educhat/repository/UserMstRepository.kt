@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository
 interface UserMstRepository : JpaRepository<UserMst, String> {
 
     @Query("Select user_id, user_nm From user_mst", nativeQuery = true)
-    fun findAllUserIdAndUserName(): List<List<String>>
+    fun findAllUserIdAndUserNameByClsId(clsId : String): List<List<String>>
+
+    fun findUserMstByUserId(userId: String) : UserMst?
 
 }

@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.springframework.session:spring-session-data-redis")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -67,18 +68,18 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 
 tasks.bootJar {
     launchScript {
-        properties["spring.profiles.active"] = "docker"
-        //properties["spring.profiles.active"] = "cloud"
-        //properties["spring.profiles.active"] = "local"
+        //properties["spring.profiles.active"] = "docker"
+        properties["spring.profiles.active"] = "local"
+        //properties["spring.profiles.active"] = "ws"
 
     }
 }
 
 
 tasks.processResources {
-    //exclude("application-docker.properties")
-    exclude("application-cloud.properties")
-    exclude("application-local.properties")
+    exclude("application-docker.properties")
+    //exclude("application-local.properties")
+    exclude("application-ws.properties")
 }
 
 

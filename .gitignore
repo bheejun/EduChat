@@ -43,3 +43,4 @@ application.properties
 application-docker.properties
 application-local.properties
 application-cloud.properties
+application-ws.properties

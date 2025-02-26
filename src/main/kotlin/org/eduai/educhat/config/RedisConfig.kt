@@ -17,7 +17,7 @@ class RedisConfig {
     private lateinit var redisHost: String
 
     @Value("\${spring.data.redis.port}")
-    private var redisPort: Int = 6379
+    private var redisPort: Int = 8083
 
     @Value("\${spring.data.redis.password}")
     private lateinit var redisPassword: RedisPassword

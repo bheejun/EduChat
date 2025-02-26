@@ -12,7 +12,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 class WebSocketConfig  : WebSocketMessageBrokerConfigurer {
 
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
-        registry.addEndpoint("/ws")
+        registry.addEndpoint("/disc/ws")
             .setAllowedOriginPatterns(
                 "http://localhost:3000",
                 "http://58.29.36.4:3500",
@@ -22,7 +22,7 @@ class WebSocketConfig  : WebSocketMessageBrokerConfigurer {
     }
 
     override fun configureMessageBroker(registry: MessageBrokerRegistry) {
-        registry.enableSimpleBroker("/discussion/subs")
-        registry.setApplicationDestinationPrefixes("/discussion/thread")
+        registry.enableSimpleBroker("/disc/subs")
+        registry.setApplicationDestinationPrefixes("/disc/thread")
     }
 }

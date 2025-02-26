@@ -1,6 +1,5 @@
 package org.eduai.educhat.service
 
-import org.eduai.educhat.service.impl.ThreadManageServiceImpl
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.data.redis.connection.Message
@@ -23,6 +22,6 @@ class RedisSubscribeService(
 
         logger.info("📩 Redis 메시지 수신: $msg (채널: $channel)")
 
-        messagingTemplate.convertAndSend("/discussion/thread/$channel", msg)
+        messagingTemplate.convertAndSend("/disc/thread/$channel", msg)
     }
 }

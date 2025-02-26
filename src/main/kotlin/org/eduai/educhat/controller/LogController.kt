@@ -1,6 +1,6 @@
 package org.eduai.educhat.controller
 
-import org.eduai.educhat.dto.request.InsertLogRequestDto
+import org.eduai.educhat.dto.InsertLogRequestDto
 import org.eduai.educhat.entity.CommWebLog
 import org.eduai.educhat.repository.CommWebLogRepository
 import org.springframework.http.HttpStatus
@@ -15,10 +15,11 @@ import java.util.*
 
 
 @RestController
-@RequestMapping("/log")
+@RequestMapping("/disc/log")
 class LogController(
     private val commWebLogRepository: CommWebLogRepository
 ) {
+
 
     @PostMapping("/insert")
     fun insertWebLog(@RequestBody insertLogRequestDto : InsertLogRequestDto) :ResponseEntity<String> {
