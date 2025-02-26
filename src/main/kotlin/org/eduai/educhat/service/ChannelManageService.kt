@@ -74,7 +74,7 @@ class ChannelManageService(
             redisTemplate.opsForList().rightPushAll(redisKey, messageJsonList)
             redisTemplate.opsForList().trim(redisKey, -100, -1)
 
-            logger.info("📝 Redis에 최신 100개 메시지 캐싱 완료: $grpId")
+            logger.info("📝 Redis에 최신 100개 메시지 캐싱 완료: $grpId + ${recentMessages.size}개")
         }
     }
 }

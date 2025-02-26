@@ -22,7 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 
 @Service
@@ -54,12 +54,15 @@ class ThreadManageServiceImpl(
     }
 
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
+        val grpId = groupId.toString()
         val clsSessionKey = keyGenService.generateRedisSessionKey(clsId)
-        val grpSessionKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
+        val grpSessionKey = keyGenService.generateRedisSessionHashKey(grpId)
         val topicName = "chat:$groupId"
 
         channelManageService.removeGroupChannel(topicName)
         redisTemplate.opsForHash<String, String>().delete(clsSessionKey, grpSessionKey)
+
+        flushMessagesToDB(clsId, grpId)
 
         logger.info("채팅방 삭제 완료: (Group ID: $groupId)")
     }
@@ -145,7 +148,7 @@ class ThreadManageServiceImpl(
     }
 
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 30000)
     fun flushAllPendingMessages() {
         // ✅ 1️⃣ 락 획득 시도 (SETNX)
         val lockAcquired = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "LOCKED", Duration.ofSeconds(LOCK_TTL.toLong()))
@@ -157,7 +160,7 @@ class ThreadManageServiceImpl(
 
         try {
             // ✅ 2️⃣ Redis에서 모든 대기 메시지 키 가져오기
-            val sessionKeys = redisTemplate.keys("pending_messages:*:*") ?: emptySet()
+            val sessionKeys = redisTemplate.keys("pending_messages:*:*")  ?: emptySet()
 
             sessionKeys.forEach { redisKey ->
                 val keys = redisKey.split(":")
@@ -191,9 +194,14 @@ class ThreadManageServiceImpl(
                 grpId = UUID.fromString(grpId),
                 userId = msg.sender,
                 msg = msg.message,
-                insDt = LocalDateTime.parse(msg.timestamp)
+                insDt = Instant
+                    .parse(msg.timestamp)
+                    .atZone(ZoneId.of("Asia/Seoul"))
+                    .toLocalDateTime()
             )
         }
+
+        logger.info("📝 DB저장 완료: $clsId, $grpId, ${bulkMessages.size}개")
 
         discThreadHistRepository.saveAll(bulkMessages)
 
