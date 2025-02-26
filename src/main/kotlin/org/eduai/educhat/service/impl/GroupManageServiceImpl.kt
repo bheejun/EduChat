@@ -3,8 +3,11 @@ package org.eduai.educhat.service.impl
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
+import org.eduai.educhat.dto.request.StudentListRequestDto
+import org.eduai.educhat.dto.response.StudentListResponseDto
 import org.eduai.educhat.entity.DiscGrp
 import org.eduai.educhat.entity.DiscGrpMem
+import org.eduai.educhat.repository.ClsEnrRepository
 import org.eduai.educhat.repository.DiscGrpMemRepository
 import org.eduai.educhat.repository.DiscGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
@@ -20,6 +23,7 @@ class GroupManageServiceImpl(
     private val userMstRepository: UserMstRepository,
     private val grpRepo: DiscGrpRepository,
     private val grpMemRepo: DiscGrpMemRepository,
+    private val clsEnrRepo: ClsEnrRepository,
     private val threadManageService: ThreadManageService
 ) : GroupManageService {
 
@@ -27,10 +31,12 @@ class GroupManageServiceImpl(
         private val logger = LoggerFactory.getLogger(GroupManageServiceImpl::class.java)
     }
 
-    override fun getStudentList(): List<List<String>> {
+    override fun getStudentList(studentListRequestDto: StudentListRequestDto): StudentListResponseDto {
 
+        return StudentListResponseDto(
+            students = clsEnrRepo.findAllUserIdAndUserNameByClsId(studentListRequestDto.clsId)
+        )
 
-        return userMstRepository.findAllUserIdAndUserName()
     }
 
     override fun createGroup(createGroupRequestDto: CreateGroupRequestDto) {

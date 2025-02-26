@@ -3,7 +3,9 @@ package org.eduai.educhat.controller
 import org.eduai.educhat.dto.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
+import org.eduai.educhat.dto.request.StudentListRequestDto
 import org.eduai.educhat.dto.response.GetDiscussionListResponseDto
+import org.eduai.educhat.dto.response.StudentListResponseDto
 import org.eduai.educhat.service.GroupManageService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,9 +28,9 @@ class GroupController(
         return ResponseEntity<GetDiscussionListResponseDto>(response, HttpStatus.OK)
     }
 
-    @GetMapping("/studList")
-    fun getStudList() : ResponseEntity<List<List<String>>> {
-        return ResponseEntity<List<List<String>>>(groupManageService.getStudentList(), HttpStatus.OK)
+    @PostMapping("/studList")
+    fun getStudList(@RequestBody studentListRequestDto: StudentListRequestDto) : ResponseEntity<StudentListResponseDto> {
+        return ResponseEntity<StudentListResponseDto>(groupManageService.getStudentList(studentListRequestDto), HttpStatus.OK)
     }
 
     @PostMapping("/create")

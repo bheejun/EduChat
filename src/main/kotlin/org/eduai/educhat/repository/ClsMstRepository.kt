@@ -17,4 +17,5 @@ interface ClsMstRepository : JpaRepository<ClsMst, String> {
         )
     """, nativeQuery = true)
     fun isUserOwner(clsId: String, userId: String): Boolean
+
 }

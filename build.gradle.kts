@@ -65,16 +65,16 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     mainClass.set("org.eduai.educhat.EduChatApplicationKt")
 }
 
-tasks.bootJar {
-    launchScript {
-        properties["spring.profiles.active"] = "docker"
-        //properties["spring.profiles.active"] = "cloud"
-        //properties["spring.profiles.active"] = "local"
-
-    }
-}
-
-
+//tasks.bootJar {
+//    launchScript {
+//        properties["spring.profiles.active"] = "docker"
+//        //properties["spring.profiles.active"] = "cloud"
+//        //["spring.profiles.active"] = "local"
+//
+//    }
+//}
+//
+//
 tasks.processResources {
     //exclude("application-docker.properties")
     exclude("application-cloud.properties")
