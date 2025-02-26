@@ -169,7 +169,7 @@ class ThreadManageServiceImpl(
                 grpId = UUID.fromString(grpId),
                 userId = msg.sender,
                 msg = msg.message,
-                insDt = LocalDateTime.now()
+                insDt = LocalDateTime.parse(msg.timestamp)
             )
         }
 
