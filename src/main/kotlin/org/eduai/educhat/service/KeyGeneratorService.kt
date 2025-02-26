@@ -6,23 +6,26 @@ import org.springframework.stereotype.Service
 class KeyGeneratorService {
 
     fun generateRedisSessionKey(clsId: String): String {
-        return "cls_sessions_prefix:$clsId"
+        return "cls_sessions:$clsId"
     }
 
-    fun generateRedisSessionHashKey(groupId: String) : String{
-        return "grp_prefix:$groupId"
+    fun generateRedisSessionHashKey(groupId: String): String {
+        return "grp:$groupId"
     }
 
-    fun generateCurrentChunkKey(clsId: String, grpId: String): String {
-        return "chat_logs:$clsId:$grpId:current_chunk"
+    fun generatePendingMessagesKey(clsId: String, grpId: String): String {
+        return "pending_messages:$clsId:$grpId"
     }
 
-    // 특정 청크 번호에 해당하는 메시지 로그 키
-    fun generateLogKey(clsId: String, grpId: String, chunkIndex: Int): String {
-        return "chat_logs:$clsId:$grpId:$chunkIndex"
+    fun generateChatLogsKey(clsId: String, grpId: String): String {
+        return "chat_logs:$clsId:$grpId"
     }
 
-    fun generateRestoreKey(): String {
-        return "cls_sessions_prefix:*"
+    fun decodeRedisSessionKey(sessionKey: String): String {
+        return sessionKey.split(":")[1]
+    }
+
+    fun decodeRedisSessionHashKey(sessionHashKey: String): String {
+        return sessionHashKey.split(":")[1]
     }
 }

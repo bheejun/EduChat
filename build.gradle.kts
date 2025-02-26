@@ -67,8 +67,8 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 
 tasks.bootJar {
     launchScript {
-        //properties["spring.profiles.active"] = "docker"
-        properties["spring.profiles.active"] = "cloud"
+        properties["spring.profiles.active"] = "docker"
+        //properties["spring.profiles.active"] = "cloud"
         //properties["spring.profiles.active"] = "local"
 
     }
@@ -76,8 +76,8 @@ tasks.bootJar {
 
 
 tasks.processResources {
-    exclude("application-docker.properties")
-    //exclude("application-cloud.properties")
+    //exclude("application-docker.properties")
+    exclude("application-cloud.properties")
     exclude("application-local.properties")
 }
 

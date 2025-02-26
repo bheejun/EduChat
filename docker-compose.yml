@@ -20,8 +20,8 @@ services:
       dockerfile: Dockerfile-redis
     container_name: discussion-redis-server
     ports:
-      #- "6379:6379"
-      - "8083:6379"
+      - "6379:6379"
+      #- "8083:6379"
 #    networks:
 #      - hallymtutor_prometheus_network
 #

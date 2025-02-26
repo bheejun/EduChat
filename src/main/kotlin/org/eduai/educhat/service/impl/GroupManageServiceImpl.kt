@@ -6,7 +6,7 @@ import org.eduai.educhat.dto.request.GetDiscussionListRequestDto
 import org.eduai.educhat.entity.DiscGrp
 import org.eduai.educhat.entity.DiscGrpMem
 import org.eduai.educhat.repository.DiscGrpMemRepository
-import org.eduai.educhat.repository.DiscussionGrpRepository
+import org.eduai.educhat.repository.DiscGrpRepository
 import org.eduai.educhat.repository.UserMstRepository
 import org.eduai.educhat.service.GroupManageService
 import org.eduai.educhat.service.ThreadManageService
@@ -18,7 +18,7 @@ import java.util.*
 @Service
 class GroupManageServiceImpl(
     private val userMstRepository: UserMstRepository,
-    private val grpRepo: DiscussionGrpRepository,
+    private val grpRepo: DiscGrpRepository,
     private val grpMemRepo: DiscGrpMemRepository,
     private val threadManageService: ThreadManageService
 ) : GroupManageService {

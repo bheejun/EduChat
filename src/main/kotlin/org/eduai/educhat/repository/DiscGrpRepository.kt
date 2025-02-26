@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface DiscussionGrpRepository : JpaRepository<DiscGrp, UUID>{
+interface DiscGrpRepository : JpaRepository<DiscGrp, UUID>{
 
     fun findAllByClsId(clsId: String): List<DiscGrp>
 

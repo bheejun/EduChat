@@ -1,8 +1,7 @@
 package org.eduai.educhat.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.eduai.educhat.dto.ReceivedMessageDto
-import org.eduai.educhat.service.impl.ThreadManageServiceImpl
+import org.eduai.educhat.dto.MessageDto
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.connection.Message
 import org.springframework.data.redis.connection.MessageListener
@@ -26,7 +25,7 @@ class CustomRedisMessageListener(
 
             logger.info("📩 Redis 메시지 수신: $msg (채널: $channel)")
 
-            val messageObj = jacksonObjectMapper().readValue(msg, ReceivedMessageDto::class.java)
+            val messageObj = jacksonObjectMapper().readValue(msg, MessageDto::class.java)
 
             // ✅ WebSocket을 통해 클라이언트에게 메시지 전송
             messagingTemplate.convertAndSend("/discussion/subs/${messageObj.grpId}", messageObj)

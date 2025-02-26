@@ -9,14 +9,18 @@ import org.eduai.educhat.dto.request.RestoreThreadRequestDto
 import org.eduai.educhat.dto.request.SendMessageRequestDto
 import org.eduai.educhat.dto.response.EnterThreadResponseDto
 import org.eduai.educhat.dto.response.RestoreThreadResponseDto
+import org.eduai.educhat.entity.DiscThreadHist
 import org.eduai.educhat.repository.ClsMstRepository
 import org.eduai.educhat.repository.DiscGrpMemRepository
+import org.eduai.educhat.repository.DiscThreadHistRepository
 import org.eduai.educhat.service.ChannelManageService
 import org.eduai.educhat.service.KeyGeneratorService
 import org.eduai.educhat.service.ThreadManageService
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
 
@@ -27,6 +31,7 @@ class ThreadManageServiceImpl(
     private val keyGenService: KeyGeneratorService,
     private val clsRepo: ClsMstRepository,
     private val grpMemRepo: DiscGrpMemRepository,
+    private val discThreadHistRepository: DiscThreadHistRepository
 ) : ThreadManageService{
 
 
@@ -34,10 +39,7 @@ class ThreadManageServiceImpl(
         private val logger = LoggerFactory.getLogger(ThreadManageServiceImpl::class.java)
     }
 
-
-
     override fun createGroupChannel(clsId: String, groupId: UUID) {
-
         val sessionListKey = keyGenService.generateRedisSessionKey(clsId)
         val sessionGrpKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
         val topicName = "chat:$groupId"
@@ -49,12 +51,11 @@ class ThreadManageServiceImpl(
     }
 
     override fun removeGroupChannel(clsId: String, groupId: UUID) {
-
         val clsSessionKey = keyGenService.generateRedisSessionKey(clsId)
         val grpSessionKey = keyGenService.generateRedisSessionHashKey(groupId.toString())
+        val topicName = "chat:$groupId"
 
-        channelManageService.removeGroupChannel(grpSessionKey)
-
+        channelManageService.removeGroupChannel(topicName)
         redisTemplate.opsForHash<String, String>().delete(clsSessionKey, grpSessionKey)
 
         logger.info("채팅방 삭제 완료: (Group ID: $groupId)")
@@ -64,55 +65,48 @@ class ThreadManageServiceImpl(
         val clsId = sendMessageRequestDto.clsId
         val grpId = sendMessageRequestDto.grpId
 
-        val clsSessionKey  = keyGenService.generateRedisSessionKey(clsId)
+        val clsSessionKey = keyGenService.generateRedisSessionKey(clsId)
         val grpSessionKey = keyGenService.generateRedisSessionHashKey(grpId)
 
         val topicName = redisTemplate.opsForHash<String, String>().get(clsSessionKey, grpSessionKey)
             ?: throw IllegalArgumentException("유효한 채널이 아님")
 
-        logger.info(topicName)
-
-        val messageJson = jacksonObjectMapper().writeValueAsString(MessageDto(
+        val messageDto = MessageDto(
             clsId = clsId,
             sender = sendMessageRequestDto.sender,
             grpId = grpId,
             message = sendMessageRequestDto.message,
-            timestamp = LocalDateTime.now().toString()
-        ))
+            timestamp = Instant.now().toString()
+        )
 
-        saveMessageLog(clsId, grpId, messageJson)
+        val messageJson = jacksonObjectMapper().writeValueAsString(messageDto)
 
+        // ✅ 1️⃣ 메시지 저장: Redis에 임시 저장 후 일정 개수 이상이면 PostgreSQL로 이동
+        saveMessageLog(clsId, grpId, messageDto)
+
+        // ✅ 2️⃣ 실시간 메시지 전송
         redisTemplate.convertAndSend(topicName, messageJson)
 
         logger.info("📤 Redis 전송됨: $messageJson → 채널: $topicName")
     }
 
-    override fun saveMessageLog(clsId: String, grpId: String, messageJson: String) {
-        // 현재 청크 번호를 위한 키 생성
-        val currentChunkKey = keyGenService.generateCurrentChunkKey(clsId, grpId)
+    override fun saveMessageLog(clsId: String, grpId: String, messageDto: MessageDto) {
+        val redisKey = keyGenService.generatePendingMessagesKey(clsId, grpId)
 
-        // 청크 번호 가져오기 (없으면 "0"으로 시작)
-        val chunkId = (redisTemplate.opsForValue().get(currentChunkKey) ?: "0").toIntOrNull() ?: 0
+        // 1️⃣ Redis에 메시지 저장 (임시 저장)
+        redisTemplate.opsForList().rightPush(redisKey, jacksonObjectMapper().writeValueAsString(messageDto))
 
-        // 현재 청크의 메시지 로그 키 생성
-        val chunkLogKey = keyGenService.generateLogKey(clsId, grpId, chunkId)
-
-        // 현재 청크에 저장된 메시지 개수를 확인
-        val currentChunkSize = redisTemplate.opsForList().size(chunkLogKey) ?: 0
-
-        if (currentChunkSize >= 100) {
-            // 청크가 100개 이상의 메시지를 보유하면 새로운 청크 생성
-            val newChunkId = chunkId + 1
-            redisTemplate.opsForValue().set(currentChunkKey, newChunkId.toString())
-            val newChunkLogKey = keyGenService.generateLogKey(clsId, grpId, newChunkId)
-            redisTemplate.opsForList().rightPush(newChunkLogKey, messageJson)
-        } else {
-            // 청크에 여유가 있으면 그대로 메시지를 추가
-            redisTemplate.opsForList().rightPush(chunkLogKey, messageJson)
+        // 2️⃣ 메시지가 10개 이상이면 PostgreSQL로 `BULK INSERT`
+        val messageCount = redisTemplate.opsForList().size(redisKey) ?: 0
+        if (messageCount >= 10) {
+            flushMessagesToDB(clsId, grpId)
         }
+
+        // 3️⃣ 최신 100개 메시지는 별도로 Redis에 유지 (조회용 캐시)
+        val chatKey = keyGenService.generateChatLogsKey(clsId, grpId)
+        redisTemplate.opsForList().rightPush(chatKey, jacksonObjectMapper().writeValueAsString(messageDto))
+        redisTemplate.opsForList().trim(chatKey, -100, -1)
     }
-
-
 
     override fun enterChannel(enterThreadRequestDto: EnterThreadRequestDto) : EnterThreadResponseDto {
         val userId = enterThreadRequestDto.userId
@@ -125,7 +119,6 @@ class ThreadManageServiceImpl(
         if(verifyUser(userId, grpId, userDiv, clsId)){
             return EnterThreadResponseDto(
                 statusCode = "VERIFIED",
-                //grpMem id 를 statusToken 으로 사용
                 statusToken = grpMemRepo.findGrpMemByUserIdAndGrpId(userId, grpId)?.id.toString(),
             )
         }else{
@@ -135,45 +128,58 @@ class ThreadManageServiceImpl(
 
     }
 
-
-    //여기 검증 어케할지 생각~
     override fun restoreThread(enterThreadRequestDto: RestoreThreadRequestDto): RestoreThreadResponseDto {
-        val userId = enterThreadRequestDto.userId
-        val clsId = enterThreadRequestDto.clsId
-        val grpId = enterThreadRequestDto.grpId
-        val userDiv = enterThreadRequestDto.userDiv
+        val redisKey = keyGenService.generateChatLogsKey(enterThreadRequestDto.clsId, enterThreadRequestDto.grpId)
 
-        logger.info("$userId, $clsId, $grpId, $userDiv")
-
-        if (!verifyUser(userId, UUID.fromString(grpId), userDiv, clsId)) {
-            throw IllegalArgumentException("Not valid User")
-        }
-
-        // 현재 청크 번호를 조회
-        val currentChunkKey = keyGenService.generateCurrentChunkKey(clsId, grpId)
-        val currentChunkStr = redisTemplate.opsForValue().get(currentChunkKey) ?: "0"
-        val currentChunk = currentChunkStr.toIntOrNull() ?: 0
-
-        // 각 청크에서 메시지를 가져와 모두 합치기
-        val messagesList = mutableListOf<String>()
-        for (chunkIndex in 0..currentChunk) {
-            val logKey = keyGenService.generateLogKey(clsId, grpId, chunkIndex)
-            val chunkMessages = redisTemplate.opsForList().range(logKey, 0, -1)
-            if (!chunkMessages.isNullOrEmpty()) {
-                messagesList.addAll(chunkMessages)
-            }
-        }
-        if (messagesList.isEmpty()) {
-            messagesList.add("Empty Session")
-        }
+        val messages = redisTemplate.opsForList().range(redisKey, 0, -1) ?: emptyList()
 
         return RestoreThreadResponseDto(
-            userId = userId,
-            clsId = clsId,
-            grpId = grpId,
-            messages = messagesList
+            userId = enterThreadRequestDto.userId,
+            clsId = enterThreadRequestDto.clsId,
+            grpId = enterThreadRequestDto.grpId,
+            messages = messages
         )
     }
+
+
+    @Scheduled(fixedRate = 5000) // 5초마다 실행
+    fun flushAllPendingMessages() {
+        val sessionKeys = redisTemplate.keys("pending_messages:*:*")
+        sessionKeys.forEach { redisKey ->
+            val keys = redisKey.split(":")
+            val clsId = keys[1]
+            val grpId = keys[2]
+
+            flushMessagesToDB(clsId, grpId)
+        }
+    }
+
+    fun flushMessagesToDB(clsId: String, grpId: String) {
+        val redisKey = keyGenService.generatePendingMessagesKey(clsId, grpId)
+
+        val messages = redisTemplate.opsForList().range(redisKey, 0, -1) ?: emptyList()
+        if (messages.isEmpty()) return
+
+        val bulkMessages = messages.map { json ->
+            jacksonObjectMapper().readValue(json, MessageDto::class.java)
+        }.map { msg ->
+            DiscThreadHist(
+                id = UUID.randomUUID(),
+                clsId = clsId,
+                grpId = UUID.fromString(grpId),
+                userId = msg.sender,
+                msg = msg.message,
+                insDt = LocalDateTime.now()
+            )
+        }
+
+        discThreadHistRepository.saveAll(bulkMessages)
+
+        // 3️⃣ Redis에서 처리된 메시지 삭제
+        redisTemplate.delete(redisKey)
+    }
+
+
 
 
     private fun verifyUser(userId: String, grpId : UUID, userDiv : String, clsId: String) : Boolean {
