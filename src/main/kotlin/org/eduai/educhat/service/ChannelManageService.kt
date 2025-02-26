@@ -39,7 +39,7 @@ class ChannelManageService(
                 logger.info("🔄 Redis에서 기존 채팅방 복원: $topicName (Group ID: $grpId)")
 
                 // ✅ 최신 100개 메시지를 Redis에 캐싱 (이전 메시지 빠른 조회 지원)
-                cacheRecentMessages( sessionKey, grpId)
+                cacheRecentMessages( keyGenService.decodeRedisSessionKey(sessionKey), grpId)
             }
         }
     }

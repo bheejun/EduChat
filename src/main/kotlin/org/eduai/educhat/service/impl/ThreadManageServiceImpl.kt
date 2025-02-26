@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
@@ -37,6 +38,8 @@ class ThreadManageServiceImpl(
 
     companion object {
         private val logger = LoggerFactory.getLogger(ThreadManageServiceImpl::class.java)
+        private val LOCK_KEY = "message_flush_lock"
+        private val LOCK_TTL = 10
     }
 
     override fun createGroupChannel(clsId: String, groupId: UUID) {
@@ -142,15 +145,34 @@ class ThreadManageServiceImpl(
     }
 
 
-    @Scheduled(fixedRate = 5000) // 5초마다 실행
+    @Scheduled(fixedRate = 5000)
     fun flushAllPendingMessages() {
-        val sessionKeys = redisTemplate.keys("pending_messages:*:*")
-        sessionKeys.forEach { redisKey ->
-            val keys = redisKey.split(":")
-            val clsId = keys[1]
-            val grpId = keys[2]
+        // ✅ 1️⃣ 락 획득 시도 (SETNX)
+        val lockAcquired = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "LOCKED", Duration.ofSeconds(LOCK_TTL.toLong()))
 
-            flushMessagesToDB(clsId, grpId)
+        if (lockAcquired == false) {
+            logger.info("🚫 다른 프로세스가 실행 중이므로 종료")
+            return // 다른 인스턴스가 실행 중이면 중복 실행 방지
+        }
+
+        try {
+            // ✅ 2️⃣ Redis에서 모든 대기 메시지 키 가져오기
+            val sessionKeys = redisTemplate.keys("pending_messages:*:*") ?: emptySet()
+
+            sessionKeys.forEach { redisKey ->
+                val keys = redisKey.split(":")
+                if (keys.size < 3) return@forEach
+
+                val clsId = keys[1]
+                val grpId = keys[2]
+
+                flushMessagesToDB(clsId, grpId)
+            }
+        } catch (e: Exception) {
+            logger.error("❌ 메시지 플러시 중 오류 발생: ", e)
+        } finally {
+            // ✅ 3️⃣ 락 해제
+            redisTemplate.delete(LOCK_KEY)
         }
     }
 

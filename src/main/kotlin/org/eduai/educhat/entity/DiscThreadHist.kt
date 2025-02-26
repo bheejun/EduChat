@@ -1,11 +1,7 @@
 package org.eduai.educhat.entity
 
-import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.persistence.*
-import org.eduai.educhat.dto.RedisMessageDto
 import org.hibernate.annotations.ColumnDefault
-import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
 
