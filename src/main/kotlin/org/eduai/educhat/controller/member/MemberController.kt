@@ -4,7 +4,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpSession
 import org.eduai.educhat.dto.member.request.CheckMemberExistRequestDto
 import org.eduai.educhat.dto.member.response.CheckMemberResponseDto
-import org.eduai.educhat.service.member.MemberService
+import org.eduai.educhat.service.member.MemberManageService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/disc")
 class MemberController(
-    private val memberService: MemberService
+    private val memberManageService: MemberManageService
 ) {
 
     companion object {
@@ -33,7 +33,7 @@ class MemberController(
 
         logger.info("Session created: $session")
 
-        return memberService.checkMemExist(checkMemberExistRequestDto)
+        return memberManageService.checkMemExist(checkMemberExistRequestDto)
     }
 
     @GetMapping("/session-check")

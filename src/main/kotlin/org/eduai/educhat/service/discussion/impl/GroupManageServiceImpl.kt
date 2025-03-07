@@ -1,5 +1,7 @@
 package org.eduai.educhat.service.discussion.impl
 
+import org.eduai.educhat.common.enum.DiscussionRole
+import org.eduai.educhat.common.enum.DiscussionStatus
 import org.eduai.educhat.dto.discussion.request.CreateGroupRequestDto
 import org.eduai.educhat.dto.discussion.request.DeleteDiscussionRequestDto
 import org.eduai.educhat.dto.discussion.request.GetDiscussionListRequestDto
@@ -55,7 +57,7 @@ class GroupManageServiceImpl(
                 clsId = clsId,
                 grpNm = group.groupNm,
                 grpTopic = group.topic,
-                isActive = "ACT",
+                isActive = DiscussionStatus.ACT.toString(),
                 insDt = syncTimestamp,
                 updDt = syncTimestamp
             ))
@@ -71,7 +73,7 @@ class GroupManageServiceImpl(
                     id = memRepoId,
                     grpId = grpId,
                     userId = memberId,
-                    memRole = "STUD",
+                    memRole = DiscussionRole.STUD.toString(),
                     insDt = syncTimestamp,
                     updDt = syncTimestamp
                 ))
@@ -88,7 +90,7 @@ class GroupManageServiceImpl(
         return when (userDiv) {
             //교수일 경우 전부 보여줘
             "O10" -> {
-                grpRepo.findAllByClsIdAndIsActive(clsId, "ACT")
+                grpRepo.findAllByClsIdAndIsActive(clsId, DiscussionStatus.ACT.toString())
             }
             //운영자 일 경우 팅겨버려
             "O20" -> {
@@ -106,7 +108,7 @@ class GroupManageServiceImpl(
         val clsId = deleteGroupRequestDto.clsId
         val grpId = UUID.fromString(deleteGroupRequestDto.grpId)
 
-        val updateResult = grpRepo.updateGrpStatus(grpId, "DEL")
+        val updateResult = grpRepo.updateGrpStatus(grpId, DiscussionStatus.DEL.toString())
         if (updateResult == 0) {
             throw IllegalArgumentException("채팅방이 존재하지 않습니다.")
         }

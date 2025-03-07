@@ -87,10 +87,8 @@ class ThreadManageServiceImpl(
 
         val messageJson = jacksonObjectMapper().writeValueAsString(messageDto)
 
-        // ✅ 1️⃣ 메시지 저장: Redis에 임시 저장 후 일정 개수 이상이면 PostgreSQL로 이동
         saveMessageLog(clsId, grpId, messageDto)
 
-        // ✅ 2️⃣ 실시간 메시지 전송
         redisTemplate.convertAndSend(topicName, messageJson)
 
         logger.info("📤 Redis 전송됨: $messageJson → 채널: $topicName")
@@ -99,16 +97,13 @@ class ThreadManageServiceImpl(
     override fun saveMessageLog(clsId: String, grpId: String, messageDto: MessageDto) {
         val redisKey = keyGenService.generatePendingMessagesKey(clsId, grpId)
 
-        // 1️⃣ Redis에 메시지 저장 (임시 저장)
         redisTemplate.opsForList().rightPush(redisKey, jacksonObjectMapper().writeValueAsString(messageDto))
 
-        // 2️⃣ 메시지가 10개 이상이면 PostgreSQL로 `BULK INSERT`
         val messageCount = redisTemplate.opsForList().size(redisKey) ?: 0
         if (messageCount >= 10) {
             flushMessagesToDB(clsId, grpId)
         }
 
-        // 3️⃣ 최신 100개 메시지는 별도로 Redis에 유지 (조회용 캐시)
         val chatKey = keyGenService.generateChatLogsKey(clsId, grpId)
         redisTemplate.opsForList().rightPush(chatKey, jacksonObjectMapper().writeValueAsString(messageDto))
         redisTemplate.opsForList().trim(chatKey, -100, -1)
@@ -150,7 +145,7 @@ class ThreadManageServiceImpl(
 
     @Scheduled(fixedRate = 30000)
     fun flushAllPendingMessages() {
-        // ✅ 1️⃣ 락 획득 시도 (SETNX)
+        // 락 획득 시도 (SETNX)
         val lockAcquired = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "LOCKED", Duration.ofSeconds(LOCK_TTL.toLong()))
 
         if (lockAcquired == false) {

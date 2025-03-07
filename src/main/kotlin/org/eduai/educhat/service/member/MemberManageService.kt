@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 import kotlin.reflect.full.memberProperties
 
 @Service
-class MemberService(
+class MemberManageService(
     private val userMstRepository: UserMstRepository
 ) {
 
@@ -24,7 +24,7 @@ class MemberService(
     lateinit var entityManager: EntityManager
 
     companion object{
-        private val logger = LoggerFactory.getLogger(MemberService::class.java)
+        private val logger = LoggerFactory.getLogger(MemberManageService::class.java)
     }
 
     private inline fun  <reified T : Any> getChangedColumns(

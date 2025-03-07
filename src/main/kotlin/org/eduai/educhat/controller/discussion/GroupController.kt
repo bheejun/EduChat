@@ -45,10 +45,4 @@ class GroupController(
 
     }
 
-//    @PostMapping("/close")
-//    fun closeGroup(@RequestBody request: DeleteDiscussionRequestDto): ResponseEntity<String> {
-//        groupManageService.closeGroup(request)
-//        return ResponseEntity("Success", HttpStatus.OK)
-//    }
-
 }
