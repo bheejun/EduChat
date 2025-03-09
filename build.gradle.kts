@@ -69,8 +69,8 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 tasks.bootJar {
     launchScript {
         //properties["spring.profiles.active"] = "docker"
-        properties["spring.profiles.active"] = "local"
-        //properties["spring.profiles.active"] = "ws"
+        //properties["spring.profiles.active"] = "local"
+        properties["spring.profiles.active"] = "ws"
 
     }
 }
@@ -78,8 +78,8 @@ tasks.bootJar {
 
 tasks.processResources {
     exclude("application-docker.properties")
-    //exclude("application-local.properties")
-    exclude("application-ws.properties")
+    exclude("application-local.properties")
+    //exclude("application-ws.properties")
 }
 
 

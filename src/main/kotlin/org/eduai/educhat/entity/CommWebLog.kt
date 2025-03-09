@@ -26,11 +26,13 @@ class CommWebLog(
 
     @Column(name = "user_id", length = 20)
     var userId: String? = null,
+
     @Column(name = "user_ip", length = 20)
     var userIp: String? = null,
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "ins_dt", nullable = false)
     var insDt: LocalDateTime? = null
+
 ) {
 }
