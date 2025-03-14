@@ -37,7 +37,7 @@ class MenuAuthController(
         @RequestParam clsId : String
     ): ResponseEntity<SetMenuAuthResponseDto>{
 
-        logger.info(menuAuthManageService.getMenuAuth(clsId).toString())
+        //logger.info(menuAuthManageService.getMenuAuth(clsId).toString())
 
         return ResponseEntity(menuAuthManageService.getMenuAuth(clsId),HttpStatus.OK)
 

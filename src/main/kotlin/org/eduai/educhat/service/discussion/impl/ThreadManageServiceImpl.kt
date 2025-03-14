@@ -184,7 +184,6 @@ class ThreadManageServiceImpl(
             jacksonObjectMapper().readValue(json, MessageDto::class.java)
         }.map { msg ->
             DiscThreadHist(
-                id = UUID.randomUUID(),
                 clsId = clsId,
                 grpId = UUID.fromString(grpId),
                 userId = msg.sender,

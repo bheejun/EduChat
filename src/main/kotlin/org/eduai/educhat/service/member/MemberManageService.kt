@@ -99,6 +99,15 @@ class MemberManageService(
         return entityManager.createQuery(criteriaUpdate).executeUpdate()
     }
 
+    @Transactional
+    fun checkMemExist2(userId: String) : Boolean{
+        return if(userMstRepository.existsById(userId)){
+            true
+        }else{
+            false
+        }
+    }
+
 
 
 

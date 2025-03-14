@@ -22,6 +22,7 @@ class SecurityConfig {
         configuration.allowedOriginPatterns = listOf(
             "http://localhost:3000",
             "http://58.29.36.4:3500",
+            "http://58.29.36.4",
             "https://tutor.k-university.ai",
             "http://27.96.151.215:3500")
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
@@ -35,8 +36,8 @@ class SecurityConfig {
             .cors { it.configurationSource(source) }
             .csrf { it.disable() } // CSRF 비활성화
             .authorizeHttpRequests { it.anyRequest().permitAll() } // 모든 요청 허용
-            .formLogin { it.disable() } // 로그인 비활성화
-            .httpBasic { it.disable() } // Basic Auth 제거
+            .formLogin { it.disable() }
+            .httpBasic { it.disable() }
 
         return http.build()
     }
@@ -46,6 +47,8 @@ class SecurityConfig {
     fun cookieSerializer(): CookieSerializer {
         return DefaultCookieSerializer().apply {
             setCookieMaxAge(-1)
+            setSameSite("Strict")          // cross-site 요청 허용
+            setUseSecureCookie(false)     // 개발 환경에서는 false (HTTPS가 아닐 경우)
         }
     }
 

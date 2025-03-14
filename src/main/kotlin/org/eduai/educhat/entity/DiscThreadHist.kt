@@ -1,7 +1,6 @@
 package org.eduai.educhat.entity
 
 import jakarta.persistence.*
-import org.hibernate.annotations.ColumnDefault
 import java.time.LocalDateTime
 import java.util.*
 
@@ -9,8 +8,9 @@ import java.util.*
 @Table(name = "disc_thread_hist")
 class DiscThreadHist(
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "msg_id", nullable = false)
-    var id: UUID,
+    var id: Long = 0L,
 
     @Column(name = "cls_id", nullable = false)
     var clsId: String,
@@ -24,9 +24,8 @@ class DiscThreadHist(
     @Column(name = "msg", nullable = false, length = Integer.MAX_VALUE)
     var msg: String,
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "ins_dt")
-    var insDt: LocalDateTime? = null
+    @Column(name = "ins_dt", nullable = false, updatable = false)
+    var insDt: LocalDateTime = LocalDateTime.now()  // 기본값 설정
 
 ) {
 }
