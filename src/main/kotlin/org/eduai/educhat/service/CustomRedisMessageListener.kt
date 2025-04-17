@@ -27,7 +27,6 @@ class CustomRedisMessageListener(
 
             val messageObj = jacksonObjectMapper().readValue(msg, MessageDto::class.java)
 
-            // ✅ WebSocket을 통해 클라이언트에게 메시지 전송
             messagingTemplate.convertAndSend("/disc/subs/${messageObj.grpId}", messageObj)
 
         } catch (e: Exception) {

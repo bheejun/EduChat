@@ -1,11 +1,9 @@
 package org.eduai.educhat.dto.message
 
-
-data class MessageDto(
-    val sender: String,
+data class SearchResultMessageDto(
+    val msgId: Long,
+    val senderId: String,
     val senderName: String,
-    val grpId: String,
-    val clsId: String,
     val message: String,
     val timestamp : String
 )

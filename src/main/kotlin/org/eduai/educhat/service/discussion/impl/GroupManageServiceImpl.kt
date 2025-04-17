@@ -90,7 +90,10 @@ class GroupManageServiceImpl(
         return when (userDiv) {
             //교수일 경우 전부 보여줘
             "O10" -> {
-                grpRepo.findAllByClsIdAndIsActive(clsId, DiscussionStatus.ACT.toString())
+                grpRepo.findAllByClsIdAndIsActiveIn(
+                    clsId,
+                    listOf(DiscussionStatus.ACT.toString(), DiscussionStatus.PAU.toString())
+                )
             }
             //운영자 일 경우 팅겨버려
             "O20" -> {
@@ -108,7 +111,7 @@ class GroupManageServiceImpl(
         val clsId = deleteGroupRequestDto.clsId
         val grpId = UUID.fromString(deleteGroupRequestDto.grpId)
 
-        val updateResult = grpRepo.updateGrpStatus(grpId, DiscussionStatus.DEL.toString())
+        val updateResult = grpRepo.updateGrpStatus(grpId, DiscussionStatus.DEL.toString(), LocalDateTime.now())
         if (updateResult == 0) {
             throw IllegalArgumentException("채팅방이 존재하지 않습니다.")
         }

@@ -1,15 +1,23 @@
 package org.eduai.educhat.config
 
+import org.eduai.educhat.common.handler.CustomWebSocketHandlerDecoratorFactory
+import org.eduai.educhat.service.discussion.ThreadChannelInterceptor
+import org.eduai.educhat.service.discussion.ThreadSessionManager
 import org.springframework.context.annotation.Configuration
+import org.springframework.messaging.simp.config.ChannelRegistration
 import org.springframework.messaging.simp.config.MessageBrokerRegistry
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration
 
 
 @Configuration
 @EnableWebSocketMessageBroker
-class WebSocketConfig  : WebSocketMessageBrokerConfigurer {
+class WebSocketConfig (
+    private val customWebSocketHandlerDecoratorFactory: CustomWebSocketHandlerDecoratorFactory,
+    private val threadChannelInterceptor: ThreadChannelInterceptor
+)  : WebSocketMessageBrokerConfigurer {
 
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry.addEndpoint("/disc/ws")
@@ -25,5 +33,13 @@ class WebSocketConfig  : WebSocketMessageBrokerConfigurer {
     override fun configureMessageBroker(registry: MessageBrokerRegistry) {
         registry.enableSimpleBroker("/disc/subs")
         registry.setApplicationDestinationPrefixes("/disc/thread")
+    }
+
+    override fun configureWebSocketTransport(registry: WebSocketTransportRegistration) {
+        registry.addDecoratorFactory(customWebSocketHandlerDecoratorFactory)
+    }
+
+    override fun configureClientInboundChannel(registration: ChannelRegistration) {
+        registration.interceptors(threadChannelInterceptor)
     }
 }

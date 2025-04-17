@@ -1,9 +1,10 @@
 package org.eduai.educhat.controller.discussion
 
-import org.eduai.educhat.dto.discussion.request.EnterThreadRequestDto
-import org.eduai.educhat.dto.discussion.request.RestoreThreadRequestDto
+import org.eduai.educhat.dto.discussion.request.*
 import org.eduai.educhat.dto.discussion.response.EnterThreadResponseDto
 import org.eduai.educhat.dto.discussion.response.RestoreThreadResponseDto
+import org.eduai.educhat.dto.discussion.response.SearchResponseDto
+import org.eduai.educhat.dto.discussion.response.ThreadAccessResponseDto
 import org.eduai.educhat.service.discussion.ThreadManageService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -39,14 +40,14 @@ class ThreadController(
     //전체 기능 정지 함수
     //채팅방 , 입장 불가 및 이용자들 밖으로 이동, restart 후에 다시 이용 가능
     @PostMapping("/pause")
-    fun pauseThread(){
-
+    fun pauseThread(@RequestBody request: PauseThreadRequestDto): ResponseEntity<String>{
+        return ResponseEntity(threadManageService.pauseThread(request), HttpStatus.OK)
     }
 
     //pause 해제 함수
     @PostMapping("/restart")
-    fun restartThread(){
-
+    fun restartThread(@RequestBody request: RestartThreadRequestDto): ResponseEntity<String>{
+        return ResponseEntity(threadManageService.restartThread(request), HttpStatus.OK)
     }
 
     //채팅 기능 정지 함수
@@ -64,7 +65,31 @@ class ThreadController(
     //채팅방 종료 후 history 로 넘기기
     @PostMapping("/close")
     fun closeThread(){
+        threadManageService
+    }
 
+    @PostMapping("/access")
+    fun requestAccessThread(@RequestBody request : ThreadAccessRequestDto): ResponseEntity<ThreadAccessResponseDto>{
+        return ResponseEntity(threadManageService.checkAccess(request), HttpStatus.OK)
+    }
+
+    @PostMapping("/search")
+    fun searchOnThread(@RequestBody searchRequestDto: SearchRequestDto): ResponseEntity<SearchResponseDto>{
+        return ResponseEntity(threadManageService.searchOnThread(searchRequestDto), HttpStatus.OK)
+    }
+
+    @PostMapping("/test/add-messages")
+    fun addTestMessages(@RequestBody request: AddTestMessagesRequestDto): ResponseEntity<String> {
+        try {
+            threadManageService.addTestMessages(request)
+            val message = "Successfully added ${request.count} test messages for clsId=${request.clsId}, grpId=${request.grpId}."
+            logger.info("✅ $message")
+            return ResponseEntity.ok(message)
+        } catch (e: Exception) {
+            logger.error("🚨 Error adding test messages: ", e)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error adding test messages: ${e.message}")
+        }
     }
 
 }

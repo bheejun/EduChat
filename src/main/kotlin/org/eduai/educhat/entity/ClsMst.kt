@@ -15,9 +15,6 @@ class ClsMst {
     @Column(name = "cls_id", nullable = false, length = 20)
     var clsId: String? = null
 
-    @Column(name = "subj_cd", nullable = false, length = 20)
-    var subjCd: String? = null
-
     @Column(name = "cls_nm", nullable = false)
     var clsNm: String? = null
 
@@ -46,4 +43,14 @@ class ClsMst {
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "upd_dt")
     var updDt: LocalDateTime? = null
+
+    @Column(name = "course_id", nullable = false, length = 20)
+    var courseId: String? = null
+
+    @Column(name = "rag_yn", nullable = false, length = Integer.MAX_VALUE)
+    var ragYn: String? = null
+
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "rag_upd_dt")
+    var ragUpdDt: Instant? = null
 }

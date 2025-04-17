@@ -36,15 +36,5 @@ class WebSocketHandler : TextWebSocketHandler() {
         logger.info("WebSocket 연결 종료: 그룹($groupId)")
     }
 
-    fun sendMessageToGroup(groupId: String, message: String) {
-        val targetSessions = sessions[groupId] ?: return
-        for (session in targetSessions) {
-            if (session.isOpen) {
-                session.sendMessage(TextMessage(message))
-            }
-        }
-        logger.info("WebSocket 메시지 전송 완료: 그룹($groupId) → $message")
-    }
-
 
 }

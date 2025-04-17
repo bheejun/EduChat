@@ -4,6 +4,8 @@ data class RestoreThreadRequestDto(
 
     val clsId: String,
     val userId: String,
+    val userName: String,
     val grpId: String,
-    val userDiv: String
+    val userDiv: String,
+    val lastMessageTimestamp: String? = null
 )

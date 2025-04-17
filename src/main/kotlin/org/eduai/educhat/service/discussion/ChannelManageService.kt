@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.listener.RedisMessageListenerContainer
 import org.springframework.data.redis.listener.ChannelTopic
 import org.springframework.stereotype.Service
+import java.time.ZoneId
 import java.util.*
 
 @Service
@@ -58,23 +59,32 @@ class ChannelManageService(
 
     private fun cacheRecentMessages(clsId: String, grpId: String) {
         val redisKey = keyGenService.generateChatLogsKey(clsId, grpId)
+        redisTemplate.delete(redisKey)
+        logger.info("🔄 기존 Redis 캐시 삭제: $redisKey")
 
         val recentMessages = discThreadHistRepository.findTop100ByClsIdAndGrpIdOrderByInsDtDesc(clsId, UUID.fromString(grpId))
+
         if (recentMessages.isNotEmpty()) {
+            val objectMapper = jacksonObjectMapper()
+            val seoulZoneId = ZoneId.of("Asia/Seoul") // 시간대 일관성 유지
+
             val messageJsonList = recentMessages.map { msg ->
-                MessageDto(
+                val msgDto = MessageDto(
                     clsId = clsId,
                     sender = msg.userId,
+                    senderName = msg.userName,
                     grpId = grpId,
                     message = msg.msg,
-                    timestamp = msg.insDt.toString()
+                    timestamp = msg.insDt.atZone(seoulZoneId).toInstant().toString() // 서울 시간대 기준 -> UTC 문자열
                 )
-            }.map { jacksonObjectMapper().writeValueAsString(it) }
+                objectMapper.writeValueAsString(msgDto) // JSON 문자열로 변환
+            }
 
-            redisTemplate.opsForList().rightPushAll(redisKey, messageJsonList)
-            redisTemplate.opsForList().trim(redisKey, -100, -1)
+            redisTemplate.opsForList().leftPushAll(redisKey, messageJsonList)
 
-            logger.info("📝 Redis에 최신 100개 메시지 캐싱 완료: $grpId + ${recentMessages.size}개")
+            logger.info("📝 Redis에 최신 ${recentMessages.size}개 메시지 캐싱 완료 (기존 캐시 삭제 후): $grpId")
+        } else {
+            logger.info("ℹ️ DB에 캐싱할 최신 메시지가 없음: $clsId, $grpId")
         }
     }
 }

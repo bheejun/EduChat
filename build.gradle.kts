@@ -30,6 +30,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-tomcat")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
+    implementation("org.jsoup:jsoup:1.18.3")
+
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.session:spring-session-data-redis")
@@ -69,8 +74,8 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 tasks.bootJar {
     launchScript {
         //properties["spring.profiles.active"] = "docker"
-        //properties["spring.profiles.active"] = "local"
-        properties["spring.profiles.active"] = "ws"
+        properties["spring.profiles.active"] = "local"
+        //properties["spring.profiles.active"] = "ws"
 
     }
 }
@@ -78,8 +83,8 @@ tasks.bootJar {
 
 tasks.processResources {
     exclude("application-docker.properties")
-    exclude("application-local.properties")
-    //exclude("application-ws.properties")
+    //exclude("application-local.properties")
+    exclude("application-ws.properties")
 }
 
 

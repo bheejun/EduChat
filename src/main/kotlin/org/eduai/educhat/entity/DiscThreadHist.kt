@@ -24,8 +24,14 @@ class DiscThreadHist(
     @Column(name = "msg", nullable = false, length = Integer.MAX_VALUE)
     var msg: String,
 
-    @Column(name = "ins_dt", nullable = false, updatable = false)
-    var insDt: LocalDateTime = LocalDateTime.now()  // 기본값 설정
+    @Column(name = "user_nm", nullable = false)
+    var userName: String,
 
+    @Column(name = "ins_dt", nullable = false, updatable = false)
+    var insDt: LocalDateTime = LocalDateTime.now(),  // 기본값 설정
+
+    @Column(name = "msg_tsv", columnDefinition = "tsvector")
+    var msgTsv: Any? = null
 ) {
+
 }
