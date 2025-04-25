@@ -1,3 +1,6 @@
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+import org.springframework.boot.gradle.tasks.run.BootRun
+
 plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
@@ -67,25 +70,34 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+tasks.named<BootJar>("bootJar") {
     mainClass.set("org.eduai.educhat.EduChatApplicationKt")
 }
 
-tasks.bootJar {
-    launchScript {
-        //properties["spring.profiles.active"] = "docker"
-        properties["spring.profiles.active"] = "local"
-        //properties["spring.profiles.active"] = "ws"
+val activeProfile: String by project
+val skipTests: String? by project
 
-    }
+tasks.named<BootRun>("bootRun") {
+    systemProperty("spring.profiles.active", activeProfile.ifBlank { "local" })
 }
 
 
-tasks.processResources {
-    exclude("application-docker.properties")
-    //exclude("application-local.properties")
-    exclude("application-ws.properties")
-}
+
+//tasks.bootJar {
+//    launchScript {
+//        //properties["spring.profiles.active"] = "docker"
+//        properties["spring.profiles.active"] = "local"
+//        //properties["spring.profiles.active"] = "ws"
+//
+//    }
+//}
+//
+//
+//tasks.processResources {
+//    exclude("application-docker.properties")
+//    //exclude("application-local.properties")
+//    exclude("application-ws.properties")
+//}
 
 
 

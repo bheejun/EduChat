@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 
@@ -50,22 +51,10 @@ class ThreadController(
         return ResponseEntity(threadManageService.restartThread(request), HttpStatus.OK)
     }
 
-    //채팅 기능 정지 함수
-    @PostMapping("/lock")
-    fun lockThread(){
-
-    }
-
-    //채팅 정지 해제 함수
-    @PostMapping("/unlock")
-    fun unlockThread(){
-
-    }
-
     //채팅방 종료 후 history 로 넘기기
     @PostMapping("/close")
-    fun closeThread(){
-        threadManageService
+    fun closeThread(@RequestBody request: PauseThreadRequestDto):ResponseEntity<String>{
+        return ResponseEntity(threadManageService.closeThread(request), HttpStatus.OK)
     }
 
     @PostMapping("/access")

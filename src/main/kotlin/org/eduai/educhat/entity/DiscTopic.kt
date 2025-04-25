@@ -42,14 +42,4 @@ class DiscTopic(
 
 ) {
 
-    fun toResponseDto(): TopicHistoryResponseDto {
-        return TopicHistoryResponseDto(
-            sessionId = this.sessionId,
-            userId = this.userId ,
-            clsId = this.clsId ,
-            topicContent = this.topicContent ?: mutableMapOf(),
-            insDt = this.insDt
-        )
-    }
-
 }

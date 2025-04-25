@@ -21,7 +21,7 @@ class MessageController(
     fun sendMessage(@RequestBody messageDto: SendMessageRequestDto, @DestinationVariable groupId: String) {
         val message = "${messageDto.sender}: ${messageDto.message}"
         val topicName = "chat:$groupId"
-        threadManageService.sendMessageToRedis(messageDto)
         logger.info("📤 메시지 발행됨: $message → Redis 채널: $topicName")
+        threadManageService.sendMessageToRedis(messageDto)
     }
 }

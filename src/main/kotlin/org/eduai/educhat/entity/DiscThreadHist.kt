@@ -8,9 +8,13 @@ import java.util.*
 @Table(name = "disc_thread_hist")
 class DiscThreadHist(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "msg_id", nullable = false)
-    var id: Long = 0L,
+    @Column(
+        name = "msg_id",
+        updatable = false,
+        nullable = false,
+        columnDefinition = "UUID DEFAULT gen_random_uuid()"
+    )
+    var id: UUID,
 
     @Column(name = "cls_id", nullable = false)
     var clsId: String,
@@ -29,9 +33,6 @@ class DiscThreadHist(
 
     @Column(name = "ins_dt", nullable = false, updatable = false)
     var insDt: LocalDateTime = LocalDateTime.now(),  // 기본값 설정
-
-    @Column(name = "msg_tsv", columnDefinition = "tsvector")
-    var msgTsv: Any? = null
 ) {
 
 }

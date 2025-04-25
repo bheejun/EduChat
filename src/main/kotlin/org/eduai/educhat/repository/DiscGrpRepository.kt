@@ -40,6 +40,20 @@ interface DiscGrpRepository : JpaRepository<DiscGrp, UUID>{
     """ , nativeQuery = true)
     fun findGrpListByClsIdAndUserId(clsId: String, userId: String): List<DiscGrp>
 
+    @Query("""
+        select * 
+        from disc_grp as DG
+        where DG.cls_id = :clsId
+        and DG.is_active = 'FIN'
+        AND EXISTS (
+            select 1 
+            from disc_grp_mem as DGM
+            where DGM.grp_id = DG.grp_id
+            AND DGM.user_id = :userId
+        )
+    """ , nativeQuery = true)
+    fun findGrpHistListByClsIdAndUserId(clsId: String, userId: String): List<DiscGrp>
+
     fun findByGrpId(grpId: UUID) : DiscGrp
 
 

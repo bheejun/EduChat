@@ -20,6 +20,7 @@ interface ThreadManageService {
     fun restartThread(restartRequest: RestartThreadRequestDto) :String
     fun checkAccess(threadAccessRequestDto: ThreadAccessRequestDto) : ThreadAccessResponseDto
     fun searchOnThread(searchRequestDto: SearchRequestDto): SearchResponseDto
+    fun closeThread(closeRequestDto: PauseThreadRequestDto): String
 
     fun addTestMessages(request: AddTestMessagesRequestDto)
 

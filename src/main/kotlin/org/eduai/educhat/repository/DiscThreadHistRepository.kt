@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository
-interface DiscThreadHistRepository : JpaRepository<DiscThreadHist, Long> {
+interface DiscThreadHistRepository : JpaRepository<DiscThreadHist, UUID> {
 
     fun findTop100ByClsIdAndGrpIdOrderByInsDtDesc(clsId : String, grpId : UUID): List<DiscThreadHist>
 
@@ -29,11 +29,30 @@ interface DiscThreadHistRepository : JpaRepository<DiscThreadHist, Long> {
     ): Page<DiscThreadHist>
 
 
-    @Query("""
+    @Query(
+        value = """
         SELECT *
         FROM disc_thread_hist
-        WHERE msg_tsv @@ to_tsquery('simple', :searchTerm)
-        AND grp_id = :grpId;
-    """ , nativeQuery = true)
-    fun searchMsgBySearchTerm(grpId: UUID, searchTerm: String) : MutableList<DiscThreadHist>
+        WHERE msg ILIKE CONCAT('%', :searchTerm, '%')
+            AND grp_id = :grpId
+        order by ins_dt desc;
+      """,
+        nativeQuery = true
+    )
+    fun searchMsgBySearchTerm(grpId: UUID, searchTerm: String): List<DiscThreadHist>
+
+    @Query(
+        value = """
+        SELECT *
+        FROM disc_thread_hist
+        WHERE disc_thread_hist.user_nm ILIKE CONCAT('%', :searchTerm, '%')
+            AND grp_id = :grpId
+        order by ins_dt desc;
+      """,
+        nativeQuery = true
+    )
+    fun searchUserBySearchTerm(grpId: UUID, searchTerm: String) : MutableList<DiscThreadHist>
+
+    @Query("SELECT dth.id FROM DiscThreadHist dth WHERE dth.id IN :msgIds")
+    fun findIdsByMsgIds(msgIds: List<UUID>): List<UUID>
 }

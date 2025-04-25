@@ -54,13 +54,13 @@ class ThreadSessionManager(
         }
     }
 
-    fun disconnectThreadSessions(threadId: String) {
-        // 1. 해당 threadId에 속한 세션 ID 목록을 가져옵니다 (조회 시점의 스냅샷).
+    fun disconnectThreadSessions(threadId: String, status: String) {
+        // 1. 해당 threadId에 속한 세션 ID 목록을 조회
         val sessionIds = threadSessions[threadId]?.toList() // toList()로 불변 복사본 생성
 
-        if (sessionIds == null || sessionIds.isEmpty()) {
+        if (sessionIds.isNullOrEmpty()) {
             logger.warn("스레드 '{}'에서 연결 종료할 세션이 없습니다.", threadId)
-            // 세션 ID 목록이 없더라도 해당 threadId 항목은 맵에서 제거하는 것이 깔끔할 수 있습니다.
+            // 세션 ID 목록이 없더라도 해당 threadId 항목은 맵에서 제거하여 불필요한 자원 소모 방지
             threadSessions.remove(threadId)
             return
         }
@@ -68,7 +68,7 @@ class ThreadSessionManager(
         logger.info("스레드 '{}'의 세션 {}개에 대한 연결 종료를 시도합니다.", threadId, sessionIds.size)
         var closedCount = 0
 
-        // 2. 각 세션 ID에 대해 반복합니다.
+        // 2. 각 세션 ID에 대해 반복
         sessionIds.forEach { sessionId ->
             try {
                 // 3. 세션 ID를 사용하여 실제 WebSocketSession 객체를 조회합니다.
@@ -80,7 +80,7 @@ class ThreadSessionManager(
                     if (session.isOpen) {
                         logger.info("세션 '{}' (스레드 '{}') 연결을 종료합니다.", sessionId, threadId)
                         // 종료 상태와 이유를 명시적으로 전달할 수 있습니다.
-                        session.close(CloseStatus.NORMAL.withReason("PAU"))
+                        session.close(CloseStatus.NORMAL.withReason(status))
                         closedCount++
                     } else {
                         // 이미 닫혀있는 경우 로그만 남깁니다.
