@@ -84,7 +84,8 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
         WHERE t.clsId = :clsId
           AND t.delYn = 'N'
           AND LOWER( function('jsonb_extract_path_text', t.topicContent, '핵심 주제') ) 
-              LIKE LOWER( CONCAT('%', :searchTerm, '%') )
+              ILIKE LOWER( CONCAT('%', :searchTerm, '%') )
+          AND (:onlyMyTopics = false OR t.userId = :userId)
         ORDER BY t.insDt DESC
     """,
         countQuery = """
@@ -93,12 +94,15 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
         WHERE t.clsId = :clsId
           AND t.delYn = 'N'
           AND LOWER( function('jsonb_extract_path_text', t.topicContent, '핵심 주제') ) 
-              LIKE LOWER( CONCAT('%', :searchTerm, '%') )
+              ILIKE LOWER( CONCAT('%', :searchTerm, '%') )
+          AND (:onlyMyTopics = false OR t.userId = :userId)
     """
     )
     fun searchSubject(
         @Param("clsId") clsId: String,
         @Param("searchTerm") searchTerm: String,
+        @Param("onlyMyTopics") onlyMyTopics: Boolean,
+        @Param("userId") userId: String,
         pageable: Pageable
     ): Page<TopicHistoryResponseDto>
 
@@ -117,7 +121,8 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
         WHERE t.clsId = :clsId
           AND t.delYn = 'N'
           AND LOWER( function('jsonb_extract_path_text', t.topicContent, '토론 주제 리스트') ) 
-              LIKE LOWER( CONCAT('%', :searchTerm, '%') )
+              ILIKE LOWER( CONCAT('%', :searchTerm, '%') )
+          AND (:onlyMyTopics = false OR t.userId = :userId)
         ORDER BY t.insDt DESC
     """,
         countQuery = """
@@ -126,12 +131,15 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
         WHERE t.clsId = :clsId
           AND t.delYn = 'N'
           AND LOWER( function('jsonb_extract_path_text', t.topicContent, '토론 주제 리스트') ) 
-              LIKE LOWER( CONCAT('%', :searchTerm, '%') )
+              ILIKE LOWER( CONCAT('%', :searchTerm, '%') )
+          AND (:onlyMyTopics = false OR t.userId = :userId)
     """
     )
     fun searchContent(
         @Param("clsId") clsId: String,
         @Param("searchTerm") searchTerm: String,
+        @Param("onlyMyTopics") onlyMyTopics: Boolean,
+        @Param("userId") userId: String,
         pageable: Pageable
     ): Page<TopicHistoryResponseDto>
 
@@ -148,7 +156,8 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
             FROM DiscTopic t LEFT JOIN UserMst u ON t.userId = u.userId 
             WHERE t.clsId = :clsId
               AND t.delYn = 'N'
-              AND LOWER(u.userNm) LIKE LOWER(CONCAT('%', :searchTerm, '%')) 
+              AND LOWER(u.userNm) ILIKE LOWER(CONCAT('%', :searchTerm, '%')) 
+              AND (:onlyMyTopics = false OR t.userId = :userId)
             ORDER BY t.insDt DESC
         """,
         countQuery = """
@@ -156,12 +165,15 @@ interface DiscTopicRepository : JpaRepository<DiscTopic, String> {
             FROM DiscTopic t LEFT JOIN UserMst u ON t.userId = u.userId
             WHERE t.clsId = :clsId
               AND t.delYn = 'N'
-              AND LOWER(u.userNm) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+              AND LOWER(u.userNm) ILIKE LOWER(CONCAT('%', :searchTerm, '%'))
+              AND (:onlyMyTopics = false OR t.userId = :userId)
         """
     )
     fun searchUser(
         @Param("clsId") clsId: String,
         @Param("searchTerm") searchTerm: String,
+        @Param("onlyMyTopics") onlyMyTopics: Boolean,
+        @Param("userId") userId: String,
         pageable: Pageable
     ): Page<TopicHistoryResponseDto>
 

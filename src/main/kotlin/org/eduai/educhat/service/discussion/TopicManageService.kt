@@ -37,20 +37,22 @@ class TopicManageService(
     fun searchTopicHistoryByOption(searchRequestDto: TopicHistorySearchRequestDto): Page<TopicHistoryResponseDto>{
         val pageable = PageRequest.of(searchRequestDto.pageNum, searchRequestDto.pageSize)
         val clsId = searchRequestDto.clsId
+        val userId = searchRequestDto.userId
         val searchOption = searchRequestDto.searchOption
         val searchTerm = searchRequestDto.searchTerm
+        val onlyMyTopics = searchRequestDto.onlyMyTopics
         logger.info(searchRequestDto.toString())
         when (searchOption) {
             "subject" -> {
-                return topicRepo.searchSubject(clsId, searchTerm, pageable)
+                return topicRepo.searchSubject(clsId, searchTerm, onlyMyTopics, userId, pageable)
             }
 
             "content" -> {
-                return topicRepo.searchContent(clsId, searchTerm, pageable)
+                return topicRepo.searchContent(clsId, searchTerm, onlyMyTopics, userId, pageable)
             }
 
             "user" -> {
-                return topicRepo.searchUser(clsId, searchTerm, pageable)
+                return topicRepo.searchUser(clsId, searchTerm, onlyMyTopics, userId, pageable)
             }
 
             else -> {
