@@ -108,7 +108,6 @@ class ChannelManageService(
         }
     }
 
-    @Transactional
     fun registerStreamListener(streamKey: String) {
         activeStreamSubscriptions.compute(streamKey) { _, existingSubscription ->
             // 기존 구독이 활성 상태면 취소
