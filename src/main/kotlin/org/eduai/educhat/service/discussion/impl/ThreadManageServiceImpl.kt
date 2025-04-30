@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.*
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class ThreadManageServiceImpl(
@@ -149,24 +150,45 @@ class ThreadManageServiceImpl(
     @Transactional
     override fun sendMessageToRedis(sendMessageRequestDto: SendMessageRequestDto) {
         val clsId = sendMessageRequestDto.clsId
-        val grpId = sendMessageRequestDto.grpId
+        val grpIdStr = sendMessageRequestDto.grpId
+        val senderId = sendMessageRequestDto.sender // userId
+        val senderName = sendMessageRequestDto.senderName
+        val grpIdUUID = UUID.fromString(grpIdStr)
 
-        val topicName = generateTopicName(grpId)
+        // 1. 그룹 정보 조회하여 익명 모드 확인
+        val groupInfo = grpRepo.findById(grpIdUUID).getOrNull()
+        val isAnonymousMode = groupInfo?.anonymousMode ?: false
 
+        // 2. 익명 모드이면 익명 이름 조회
+        var anonymousName: String? = null
+        if (isAnonymousMode) {
+            // DiscGrpMem 에서 해당 그룹의 해당 유저 정보 조회
+            val memberInfo = grpMemRepo.findGrpMemByUserIdAndGrpId(senderId, grpIdUUID)
+            anonymousName = memberInfo?.anonymousNm // nullable
+            if (anonymousName == null) {
+                logger.warn("익명 모드 그룹(grpId: $grpIdStr)이지만 사용자(userId: $senderId)의 익명 이름이 DiscGrpMem에 없습니다.")
+                // 익명 이름이 없는 경우 기본값 또는 에러 처리 필요 -> 여기서는 null 유지
+            }
+        }
+
+        // 3. MessageDto 생성 (anonymousName 포함)
         val messageDto = MessageDto(
             msgId = UUID.randomUUID().toString(),
             clsId = clsId,
-            sender = sendMessageRequestDto.sender,
-            senderName = sendMessageRequestDto.senderName,
-            grpId = grpId,
+            sender = senderId,
+            senderName = senderName,
+            grpId = grpIdStr,
             message = sendMessageRequestDto.message,
-            timestamp = Instant.now().toString()
+            timestamp = Instant.now().toString(),
+            anonymousName = anonymousName // 조회된 익명 이름 또는 null
         )
 
-        val messageJson = jacksonObjectMapper().writeValueAsString(messageDto)
+        // 4. 메시지 로그 저장 (Redis Stream, Redis List) -> 수정된 saveMessageLog 호출
+        saveMessageLog(clsId, grpIdStr, messageDto)
 
-        saveMessageLog(clsId, grpId, messageDto)
-
+        // 5. Redis Pub/Sub으로 메시지 전송
+        val topicName = generateTopicName(grpIdStr)
+        val messageJson = jacksonObjectMapper().writeValueAsString(messageDto) // DTO에 anonymousName 포함됨
         redisTemplate.convertAndSend(topicName, messageJson)
 
         logger.info("📤 Redis 전송됨: $messageJson → 채널: $topicName")
@@ -174,31 +196,36 @@ class ThreadManageServiceImpl(
 
 
     override fun saveMessageLog(clsId: String, grpId: String, messageDto: MessageDto) {
+
         val streamKey = keyGenService.generateStreamKey(clsId, grpId)
-        val record = MapRecord.create(
-            streamKey,
-            mapOf(
-                "msgId"      to messageDto.msgId,
-                "clsId"      to messageDto.clsId,
-                "grpId"      to messageDto.grpId,
-                "sender"     to messageDto.sender,
-                "senderName" to messageDto.senderName,
-                "message"    to messageDto.message,
-                "timestamp"  to messageDto.timestamp
-            )
+        val messageMap = mutableMapOf(
+            "msgId"      to messageDto.msgId,
+            "clsId"      to messageDto.clsId,
+            "grpId"      to messageDto.grpId,
+            "sender"     to messageDto.sender,
+            "senderName" to messageDto.senderName,
+            "message"    to messageDto.message,
+            "timestamp"  to messageDto.timestamp
         )
+        messageDto.anonymousName?.let { anonName ->
+            messageMap["anonymousName"] = anonName
+        }
+        val record = MapRecord.create(streamKey, messageMap)
 
         try {
             val recordId = redisTemplate.opsForStream<String, String>().add(record)
-            logger.info("✅ Stream 저장 완료: Key=$streamKey, RecordId=$recordId, MsgId=${messageDto.msgId}")
+            logger.info("✅ Stream 저장 완료: Key=$streamKey, RecordId=$recordId, MsgId=${messageDto.msgId}, AnonName=${messageDto.anonymousName ?: "N/A"}")
         } catch (e: Exception) {
             logger.error("🚨 Stream 저장 실패: Key=$streamKey, MsgId=${messageDto.msgId}", e)
         }
 
-
         val chatKey = keyGenService.generateChatLogsKey(clsId, grpId)
-        redisTemplate.opsForList().rightPush(chatKey, jacksonObjectMapper().writeValueAsString(messageDto))
-        redisTemplate.opsForList().trim(chatKey, -100, -1)
+        try {
+            redisTemplate.opsForList().rightPush(chatKey, jacksonObjectMapper().writeValueAsString(messageDto))
+            redisTemplate.opsForList().trim(chatKey, -PAGE_SIZE.toLong(), -1) // 캐시 크기 유지
+        } catch (e: Exception) {
+            logger.error("🚨 Redis List 캐시 저장/정리 실패: Key=$chatKey, MsgId=${messageDto.msgId}", e)
+        }
     }
 
     override fun enterChannel(enterThreadRequestDto: EnterThreadRequestDto): EnterThreadResponseDto {
@@ -223,12 +250,13 @@ class ThreadManageServiceImpl(
 
     override fun restoreThread(restoreRequest: RestoreThreadRequestDto): RestoreThreadResponseDto {
         val clsId = restoreRequest.clsId
-        val grpIdStr = restoreRequest.grpId // UUID 파싱 전 문자열
+        val grpIdStr = restoreRequest.grpId
         val grpId = UUID.fromString(grpIdStr)
         val lastTimestampStr = restoreRequest.lastMessageTimestamp
         val objectMapper = jacksonObjectMapper()
 
         if (lastTimestampStr == null) {
+            // 1. 최초 로딩: Redis 캐시 확인
             logger.info("📜 최초 채팅 기록 로딩 요청 (Redis 캐시 확인): clsId=$clsId, grpId=$grpIdStr")
             val redisKey = keyGenService.generateChatLogsKey(clsId, grpIdStr)
             val cachedMessagesJson = redisTemplate.opsForList().range(redisKey, -PAGE_SIZE.toLong(), -1)
@@ -236,67 +264,68 @@ class ThreadManageServiceImpl(
             if (!cachedMessagesJson.isNullOrEmpty()) {
                 logger.info("✅ Redis 캐시 히트: ${cachedMessagesJson.size}개 메시지 발견")
                 try {
+                    // JSON 파싱 시 MessageDto에 anonymousName 포함되어 자동 매핑됨
                     val cachedMessagesDto = cachedMessagesJson.map { json ->
                         objectMapper.readValue<MessageDto>(json)
                     }
-                    val hasNext = cachedMessagesDto.size == PAGE_SIZE
+                    val hasNext = cachedMessagesDto.size == PAGE_SIZE // 캐시가 꽉 차 있으면 이전 기록 더 있을 수 있음
 
                     logger.info("📜 Redis 캐시 에서 ${cachedMessagesDto.size}개 로드 완료, 다음 페이지 유무: $hasNext")
-
-                    return RestoreThreadResponseDto(
-                        messages = cachedMessagesDto,
-                        hasNext = hasNext
-                    )
+                    return RestoreThreadResponseDto(messages = cachedMessagesDto, hasNext = hasNext)
                 } catch (e: Exception) {
                     logger.error("🚨 Redis 캐시 메시지 파싱 오류 (DB 조회로 대체): ", e)
+                    // 오류 시 DB 조회 로직으로 넘어감
                 }
             } else {
                 logger.info("ℹ️ Redis 캐시 미스 또는 비어 있음. DB 조회 시작.")
             }
 
+            // 2. 최초 로딩: DB 조회
             val pageable: Pageable = PageRequest.of(0, PAGE_SIZE, Sort.by("insDt").descending())
             val messagePage = discThreadHistRepository.findByClsIdAndGrpIdOrderByInsDtDesc(clsId, grpId, pageable)
+            // DB Entity(hist) -> MessageDto 매핑 시 anonymousNm 포함
             val messagesDtoList = messagePage.content.map { hist ->
                 MessageDto(
                     msgId = hist.id.toString(),
-                    clsId = hist.clsId, grpId = hist.grpId.toString(), sender = hist.userId,
-                    senderName = hist.userName, message = hist.msg,
-                    timestamp = hist.insDt.atZone(seoulZoneId).toInstant().toString()
+                    clsId = hist.clsId,
+                    grpId = hist.grpId.toString(),
+                    sender = hist.userId,
+                    senderName = hist.userName,
+                    message = hist.msg,
+                    timestamp = hist.insDt.atZone(seoulZoneId).toInstant().toString(),
+                    anonymousName = hist.anonymousNm // DB에서 읽은 익명 이름 매핑
                 )
             }
             logger.info("📜 DB 에서 ${messagesDtoList.size}개 로드 완료, 다음 페이지 유무: ${messagePage.hasNext()}")
-            return RestoreThreadResponseDto(
-                messages = messagesDtoList, hasNext = messagePage.hasNext()
-            )
+            return RestoreThreadResponseDto(messages = messagesDtoList.reversed(), hasNext = messagePage.hasNext())
 
         } else {
+            // 3. 이전 기록 로딩: DB 조회
             logger.info("📜 이전 채팅 기록 로딩 요청 (DB 조회): clsId=$clsId, grpId=$grpIdStr, before=$lastTimestampStr")
             val pageable: Pageable = PageRequest.of(0, PAGE_SIZE, Sort.by("insDt").descending())
             try {
                 val lastTimestamp = Instant.parse(lastTimestampStr).atZone(seoulZoneId).toLocalDateTime()
                 val messagePage = discThreadHistRepository.findByClsIdAndGrpIdAndInsDtBeforeOrderByInsDtDesc(
-                    clsId,
-                    grpId,
-                    lastTimestamp,
-                    pageable
+                    clsId, grpId, lastTimestamp, pageable
                 )
+                // DB Entity(hist) -> MessageDto 매핑 시 anonymousNm 포함
                 val messagesDtoList = messagePage.content.map { hist ->
                     MessageDto(
                         msgId = hist.id.toString(),
-                        clsId = hist.clsId, grpId = hist.grpId.toString(), sender = hist.userId,
-                        senderName = hist.userName, message = hist.msg,
-                        timestamp = hist.insDt.atZone(seoulZoneId).toInstant().toString()
+                        clsId = hist.clsId,
+                        grpId = hist.grpId.toString(),
+                        sender = hist.userId,
+                        senderName = hist.userName,
+                        message = hist.msg,
+                        timestamp = hist.insDt.atZone(seoulZoneId).toInstant().toString(),
+                        anonymousName = hist.anonymousNm // DB에서 읽은 익명 이름 매핑
                     )
                 }
                 logger.info("📜 DB 에서 이전 메시지 ${messagesDtoList.size}개 로드 완료, 다음 페이지 유무: ${messagePage.hasNext()}")
-                return RestoreThreadResponseDto(
-                    messages = messagesDtoList.reversed(), hasNext = messagePage.hasNext()
-                )
+                return RestoreThreadResponseDto(messages = messagesDtoList.reversed(), hasNext = messagePage.hasNext())
             } catch (e: Exception) {
                 logger.error("🚨 잘못된 타임 스탬프 형식 또는 이전 메시지 DB 조회 오류: $lastTimestampStr", e)
-                return RestoreThreadResponseDto(
-                    messages = emptyList(), hasNext = false
-                )
+                return RestoreThreadResponseDto(messages = emptyList(), hasNext = false)
             }
         }
     }
@@ -418,6 +447,7 @@ class ThreadManageServiceImpl(
             }
         }
     }
+
     override fun addTestMessages(request: AddTestMessagesRequestDto) {
         val clsId = request.clsId
         val grpIdStr = request.grpId
@@ -489,40 +519,28 @@ class ThreadManageServiceImpl(
     private fun persistAllMessagesFromStream(streamKey: String, clsId: String, grpId: UUID) {
         logger.info("Redis Stream 영속화 시작: $streamKey")
         val messagesToSaveInDb = mutableListOf<DiscThreadHist>()
-        var lastProcessedId = "0-0" // Stream의 가장 처음부터 읽기 위한 시작 ID
-        val readCount = 500L // 한 번에 읽을 메시지 수
-        val readTimeoutSeconds = 2L // 읽기 타임아웃 (초)
+        var lastProcessedId = "0-0"
+        val readCount = 500L
+        val readTimeoutSeconds = 2L
 
         while (true) {
             try {
                 val currentOffset = StreamOffset.create(streamKey, ReadOffset.from(lastProcessedId))
-
                 val streamMessages: List<MapRecord<String, String, String>>? = redisTemplate.opsForStream<String, String>().read(
-                    StreamReadOptions.empty()
-                        .count(readCount)
-                        .block(Duration.ofSeconds(readTimeoutSeconds)),
+                    StreamReadOptions.empty().count(readCount).block(Duration.ofSeconds(readTimeoutSeconds)),
                     currentOffset
                 )
 
-                if (streamMessages == null) {
-                    logger.warn("Stream ($streamKey) 읽기 결과가 null (Timeout 가능성). Last Processed ID: $lastProcessedId")
-                    try { Thread.sleep(100) } catch (ie: InterruptedException) { Thread.currentThread().interrupt(); throw ie }
-                    continue
+                if (streamMessages == null || streamMessages.isEmpty()) {
+                    logger.info("Stream ($streamKey) 에서 더 이상 읽을 메시지 없음 또는 Timeout. Last Processed ID: $lastProcessedId")
+                    break // 더 이상 읽을 메시지가 없으면 종료
                 }
-
-                if (streamMessages.isEmpty()) {
-                    // 현재 offset 이후로 더 이상 읽을 메시지가 없으면 종료
-                    logger.info("Stream ($streamKey) 에서 더 이상 읽을 메시지 없음 (Last Processed ID: $lastProcessedId).")
-                    break
-                }
-
 
                 val batchToSave = mutableListOf<DiscThreadHist>()
-                var currentBatchLastId = lastProcessedId // 현재 배치의 마지막 ID를 추적할 변수
+                var currentBatchLastId = lastProcessedId
 
                 for (messageRecord in streamMessages) {
-                    currentBatchLastId = messageRecord.id.value // <<< 중요: 처리된 마지막 메시지 ID 업데이트 >>>
-
+                    currentBatchLastId = messageRecord.id.value
                     val messageData = messageRecord.value
                     try {
                         val msgIdStr = messageData["msgId"]
@@ -533,6 +551,8 @@ class ThreadManageServiceImpl(
                             continue
                         }
 
+                        val anonymousNameFromStream = messageData["anonymousName"]
+
                         val historyEntry = DiscThreadHist(
                             id = UUID.fromString(msgIdStr),
                             clsId = messageData["clsId"] ?: clsId,
@@ -540,37 +560,35 @@ class ThreadManageServiceImpl(
                             userId = messageData["sender"] ?: "UNKNOWN_SENDER",
                             userName = messageData["senderName"] ?: "Unknown User",
                             msg = messageData["message"] ?: "",
-                            insDt = Instant.parse(timestampStr).atZone(seoulZoneId).toLocalDateTime()
+                            insDt = Instant.parse(timestampStr).atZone(seoulZoneId).toLocalDateTime(),
+                            anonymousNm = anonymousNameFromStream // 읽어온 값 저장
                         )
                         batchToSave.add(historyEntry)
                     } catch (parseEx: Exception) {
                         logger.error("🚨 Stream 메시지 파싱/변환 오류 (Record ID: ${messageRecord.id.value}, Data: $messageData): ", parseEx)
                     }
                 }
-
                 lastProcessedId = currentBatchLastId
 
                 if (batchToSave.isNotEmpty()) {
                     messagesToSaveInDb.addAll(batchToSave)
-                    logger.debug("${batchToSave.size}개 메시지 DB 저장 목록에 추가 (현재 총 ${messagesToSaveInDb.size}개)")
                 }
 
-                // 배치 저장 로직 (1000개 단위)
+                // 배치 저장 (1000개 단위)
                 if (messagesToSaveInDb.size >= 1000) {
-                    logger.info("DB 저장을 위해 ${messagesToSaveInDb.size}개 메시지 준비됨...")
                     saveMessagesBatchToDb(messagesToSaveInDb)
                     messagesToSaveInDb.clear()
                 }
 
             } catch (redisEx: Exception) {
                 logger.error("🚨 Redis Stream 읽기 오류 발생 (Key: $streamKey, Last Processed ID: $lastProcessedId): ", redisEx)
-                throw redisEx // 오류 전파
+                // 읽기 오류 시, 일단 루프를 중단하고 현재까지 모은 메시지를 저장 시도할 수 있음
+                break
             }
         } // end while
 
         // 루프 종료 후 남은 메시지 저장
         if (messagesToSaveInDb.isNotEmpty()) {
-            logger.info("DB 저장을 위해 남은 ${messagesToSaveInDb.size}개 메시지 준비됨...")
             saveMessagesBatchToDb(messagesToSaveInDb)
         }
 

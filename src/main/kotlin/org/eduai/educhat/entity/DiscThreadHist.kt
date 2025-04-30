@@ -33,6 +33,9 @@ class DiscThreadHist(
 
     @Column(name = "ins_dt", nullable = false, updatable = false)
     var insDt: LocalDateTime = LocalDateTime.now(),  // 기본값 설정
+
+    @Column(name = "anonymous_nm", nullable = true)
+    var anonymousNm: String ? = ""
 ) {
 
 }

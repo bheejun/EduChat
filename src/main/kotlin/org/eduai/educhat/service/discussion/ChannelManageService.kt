@@ -137,6 +137,7 @@ class ChannelManageService(
                         grpId      = map["grpId"] ?: "UNKNOWN_GRP",
                         sender     = map["sender"] ?: "UNKNOWN_SENDER",
                         senderName = map["senderName"] ?: "Unknown User",
+                        anonymousName = map["anonymousName"],
                         message    = map["message"] ?: "",
                         timestamp  = map["timestamp"] ?: Instant.now().toString()
                     )
@@ -194,6 +195,7 @@ class ChannelManageService(
                     clsId = clsId,
                     sender = msg.userId,
                     senderName = msg.userName,
+                    anonymousName = msg.anonymousNm,
                     grpId = grpId,
                     message = msg.msg,
                     timestamp = msg.insDt.atZone(seoulZoneId).toInstant().toString()

@@ -5,6 +5,14 @@ import org.eduai.educhat.entity.UserMst
 import java.time.LocalDateTime
 
 data class CheckMemberExistRequestDto(
+    val responseH: responseH,
+    val userPw: String
+){
+
+
+}
+
+data class responseH(
 
     @JsonProperty("JAEJ_IDNO")
     val memId : String,
@@ -36,7 +44,6 @@ data class CheckMemberExistRequestDto(
     @JsonProperty("ERR_MSG")
     val errMsg : String ? = ""
 ){
-
     fun toUserMst () : UserMst {
         return UserMst(
             userId = this.memId,

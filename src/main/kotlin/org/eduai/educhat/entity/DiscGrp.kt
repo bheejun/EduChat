@@ -35,6 +35,11 @@ class DiscGrp(
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     @Column(name = "upd_dt", nullable = false)
-    var updDt: LocalDateTime
+    var updDt: LocalDateTime,
+
+    @Column(name = "anonymous_mode")
+    var anonymousMode: Boolean
+
+
 ) {
 }

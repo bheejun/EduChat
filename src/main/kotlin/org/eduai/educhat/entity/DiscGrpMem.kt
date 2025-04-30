@@ -27,6 +27,9 @@ class DiscGrpMem(
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     @Column(name = "upd_dt")
-    var updDt: LocalDateTime
+    var updDt: LocalDateTime,
+
+    @Column(name = "anonymous_nm", nullable = true)
+    var anonymousNm: String ? = ""
 ) {
 }

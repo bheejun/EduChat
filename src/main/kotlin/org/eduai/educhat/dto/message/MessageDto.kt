@@ -10,6 +10,7 @@ data class MessageDto(
     val msgId: String,
     val sender: String,
     val senderName: String,
+    val anonymousName: String ?= null,
     val grpId: String,
     val clsId: String,
     val message: String,
@@ -25,7 +26,8 @@ data class MessageDto(
             insDt = Instant.parse(this.timestamp)
                 .atZone(ZoneId.of("Asia/Seoul"))
                 .toLocalDateTime(),
-            msg = message
+            msg = message,
+            anonymousNm = anonymousName
 
         )
     }

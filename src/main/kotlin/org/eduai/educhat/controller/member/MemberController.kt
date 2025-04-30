@@ -30,9 +30,13 @@ class MemberController(
     ): CheckMemberResponseDto<Any> {
 
         logger.info(checkMemberExistRequestDto.toString())
+        val checkRequest = checkMemberExistRequestDto.responseH
 
         val session: HttpSession = request.getSession(true)
-        session.setAttribute("userId", checkMemberExistRequestDto.memId)
+        session.setAttribute("userId", checkRequest.memId)
+        session.setAttribute("userNm", checkRequest.memNm)
+        session.setAttribute("userDiv", checkRequest.memDiv)
+        session.setAttribute("userPw", checkMemberExistRequestDto.userPw)
 
         logger.info("Session created: $session")
 

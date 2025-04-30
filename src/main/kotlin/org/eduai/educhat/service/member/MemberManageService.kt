@@ -48,9 +48,9 @@ class MemberManageService(
     @Transactional
     fun checkMemExist (checkMemberExistRequestDto: CheckMemberExistRequestDto) : CheckMemberResponseDto<Any> {
 
-        val oldUserMst = userMstRepository.findUserMstByUserId(checkMemberExistRequestDto.memId)
+        val oldUserMst = userMstRepository.findUserMstByUserId(checkMemberExistRequestDto.responseH.memId)
 
-        val newUserMst = checkMemberExistRequestDto.toUserMst()
+        val newUserMst = checkMemberExistRequestDto.responseH.toUserMst()
 
         //이미 정보가 등록되어 존재하는 경우
         if(oldUserMst != null){
@@ -65,7 +65,7 @@ class MemberManageService(
             //업데이트가 필요 한 경우
             else{
                 logger.info(CheckMemberResponseDto(status = Status.UPDATED, data = differences).toString())
-                updateUserWithDifferences(checkMemberExistRequestDto.memId, differences)
+                updateUserWithDifferences(checkMemberExistRequestDto.responseH.memId, differences)
                 CheckMemberResponseDto(status = Status.UPDATED, data = differences)
             }
         }

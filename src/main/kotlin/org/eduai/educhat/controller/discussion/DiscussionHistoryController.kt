@@ -17,7 +17,8 @@ class DiscussionHistoryController(
 ) {
 
     @PostMapping("/list")
-    fun getDiscHistoryList(@RequestBody getDiscussionListRequestDto: GetDiscussionListRequestDto): ResponseEntity<GetDiscussionListResponseDto> {
+    fun getDiscHistoryList(@RequestBody getDiscussionListRequestDto: GetDiscussionListRequestDto
+    ): ResponseEntity<GetDiscussionListResponseDto> {
         val response = GetDiscussionListResponseDto(
             discussionList = discussionHistoryService.getDiscHistList(getDiscussionListRequestDto)
         )

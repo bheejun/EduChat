@@ -26,7 +26,7 @@ class MenuAuthManageService(
             SetMenuAuthResponseDto(menuAuth.componentList?.split(","))
         } else {
             // 기본 허용 메뉴 리스트
-            val defaultMenus = listOf("/review", "/preview", "/schat", "/topicextraction", "/sdiscussion", "/customschat")
+            val defaultMenus = listOf("/review", "/preview", "/schat", "/topicextraction", "/sdiscussion", "/customschat", "/solvequiz")
             val defaultComponentList = defaultMenus.joinToString(",")
             // 새로운 ClsMenuAuth 객체 생성 (필요한 필드에 맞게 수정)
             val newMenuAuth = ClsMenuAuth(
